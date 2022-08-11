@@ -1,4 +1,20 @@
 import numpy as np
+import torch
+
+class ArtificialDataset(torch.utils.data.Dataset):
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+        return
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        X_i = self.X[idx]
+        y_i = self.y[idx]
+
+        return X_i, y_i
 
 
 def data_1to1(N, xl=-1, xh=1, noise_level=1):

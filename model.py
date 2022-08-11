@@ -72,3 +72,39 @@ class VariationalLayer(nn.Module):
         w = self.sample_weight(theta_mu, theta_rho)    
         x_next_layer = torch.bmm(x_layer, w[:, :-1, :]) + w[:,-1,:].unsqueeze(1)
         return x_next_layer
+    
+    
+class VariationalNet(nn.Module):
+    # Initialize the layers
+    def __init__(self, n_samples, input_size, output_size, plv):
+        super().__init__()
+        self.n_samples = n_samples
+        self.act1 = nn.ReLU()
+        self.act2 = nn.Tanh()
+        self.act3 = nn.Sigmoid()
+        self.linear1 = VariationalLayer(input_size, 32, 0, plv, n_samples)
+        #self.bn = nn.BatchNorm1d(16)
+        self.linear2 = VariationalLayer(32, 16, 0, plv, n_samples)
+        self.linear3 = VariationalLayer(16, output_size, 0, plv, n_samples)
+    
+    # Perform the computation
+    def forward(self, x):
+        #pdb.set_trace()
+        x = torch.unsqueeze(x, 0)
+        x = x.expand((self.n_samples, x.shape[1], x.shape[2]))
+        x = self.linear1(x)
+        #x = self.bn(x)
+        x = self.act1(x)
+        x = self.linear2(x)
+        x = self.act1(x)
+        x = self.linear3(x)
+        x = self.act1(x)
+        return x
+    
+    def kl_divergence_NN(self):
+        kl = (
+            self.linear1.kl_divergence_layer() 
+            + self.linear2.kl_divergence_layer()
+            + self.linear3.kl_divergence_layer()
+        )
+        return kl
