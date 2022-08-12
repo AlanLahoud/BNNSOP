@@ -20,13 +20,14 @@ class ArtificialDataset(torch.utils.data.Dataset):
 def data_1to1(N, xl=-1, xh=1, noise_level=1):
     X = np.arange(xl, xh, (xh-xl)/N)
     
-    y_perfect = np.abs(6*X)*np.sin(X) + np.sin(12*X)
+    y_perfect = np.abs(np.abs(6*X)*np.sin(X) + np.sin(12*X))
 
     # Noise
     n = np.random.normal(0, noise_level, N)*np.abs(X**2)
-    y = y_perfect + n
+    y = np.abs(y_perfect + n)
     
     X = np.expand_dims(X, axis=1)
+    y = np.expand_dims(y, axis=1)
     
     return X, y
 
@@ -102,7 +103,7 @@ def data_4to4(N, noise_level=1):
             + np.random.normal(0, noise_level, N)*x4*np.abs(x3)
         )
     
-    y1 = y1_perfect + random_noise_()
+    y1 = np.clip(y1_perfect + random_noise_(), a_min=0, a_max=None)
     y2 = y2_perfect + random_noise_()
     y3 = y3_perfect + random_noise_()
     y4 = y4_perfect + random_noise_()

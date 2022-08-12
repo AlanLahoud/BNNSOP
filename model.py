@@ -87,7 +87,6 @@ class VariationalNet(nn.Module):
         self.linear2 = VariationalLayer(32, 16, 0, plv, n_samples)
         self.linear3 = VariationalLayer(16, output_size, 0, plv, n_samples)
     
-    # Perform the computation
     def forward(self, x):
         #pdb.set_trace()
         x = torch.unsqueeze(x, 0)
@@ -98,7 +97,7 @@ class VariationalNet(nn.Module):
         x = self.linear2(x)
         x = self.act1(x)
         x = self.linear3(x)
-        x = self.act1(x)
+        #x = self.act1(x)
         return x
     
     def kl_divergence_NN(self):
