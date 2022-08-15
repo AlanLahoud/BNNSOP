@@ -82,10 +82,10 @@ class VariationalNet(nn.Module):
         self.act1 = nn.ReLU()
         self.act2 = nn.Tanh()
         self.act3 = nn.Sigmoid()
-        self.linear1 = VariationalLayer(input_size, 16, 0, plv, n_samples)
+        self.linear1 = VariationalLayer(input_size, 32, 0, plv, n_samples)
         #self.bn = nn.BatchNorm1d(16)
-        self.linear2 = VariationalLayer(16, 8, 0, plv, n_samples)
-        self.linear3 = VariationalLayer(8, output_size, 0, plv, n_samples)
+        self.linear2 = VariationalLayer(32, 32, 0, plv, n_samples)
+        self.linear3 = VariationalLayer(32, output_size, 0, plv, n_samples)
     
     def forward(self, x):
         #pdb.set_trace()
