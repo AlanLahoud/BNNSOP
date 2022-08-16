@@ -49,8 +49,8 @@ if K>50 or K<0:
     print('Try K between 0 and 50')
     quit()
 
-if PLV<-1 or PLV>6:
-    print('Try PLV between -1 and 6')
+if PLV<-3 or PLV>6:
+    print('Try PLV between -3 and 6')
     quit()
 
 # Setting parameters (change if necessary)
