@@ -75,29 +75,22 @@ class VariationalLayer(nn.Module):
     
     
 class VariationalNet(nn.Module):
-    # Initialize the layers
     def __init__(self, n_samples, input_size, output_size, plv):
         super().__init__()
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
-        self.act2 = nn.Tanh()
-        self.act3 = nn.Sigmoid()
         self.linear1 = VariationalLayer(input_size, 32, 0, plv, n_samples)
-        #self.bn = nn.BatchNorm1d(16)
         self.linear2 = VariationalLayer(32, 32, 0, plv, n_samples)
         self.linear3 = VariationalLayer(32, output_size, 0, plv, n_samples)
     
     def forward(self, x):
-        #pdb.set_trace()
         x = torch.unsqueeze(x, 0)
         x = x.expand((self.n_samples, x.shape[1], x.shape[2]))
         x = self.linear1(x)
-        #x = self.bn(x)
         x = self.act1(x)
         x = self.linear2(x)
         x = self.act1(x)
         x = self.linear3(x)
-        #x = self.act1(x)
         return x
     
     def kl_divergence_NN(self):
@@ -107,3 +100,34 @@ class VariationalNet(nn.Module):
             + self.linear3.kl_divergence_layer()
         )
         return kl
+    
+    
+class StandardNet(nn.Module):
+    def __init__(self, n_samples, input_size, output_size, plv):
+        super().__init__()
+        self.act1 = nn.ReLU()
+        self.linear1 = nn.Linear(input_size, 32)
+        self.linear2 = nn.Linear(32, 32)
+        self.linear3 = nn.Linear(32, output_size)
+        
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.act1(x)
+        x = self.linear2(x)
+        x = self.act1(x)
+        x = self.linear3(x)
+        return x   
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

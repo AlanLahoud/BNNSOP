@@ -1,5 +1,16 @@
 import torch
 
+
+class TrainMSE():
+    def __init__(self, model, opt, loss_data, K, training_loader, validation_loader):
+        self.model = model
+        self.opt = opt
+        self.loss_data = loss_data
+        self.K = K
+        self.training_loader = training_loader
+        self.validation_loader = validation_loader
+
+
 class TrainDecoupledElbo():
     
     def __init__(self, model, opt, loss_data, K, training_loader, validation_loader):
@@ -9,6 +20,9 @@ class TrainDecoupledElbo():
         self.K = K
         self.training_loader = training_loader
         self.validation_loader = validation_loader
+        self.bnn = False
+        if str(self.model.linear1) == 'VariationalLayer()':
+            self.bnn = True
     
     
     def train_one_epoch(self):
@@ -22,15 +36,21 @@ class TrainDecoupledElbo():
 
             x_batch, y_batch = data
             self.opt.zero_grad()
-            
+ 
             y_preds = self.model(x_batch)
-            y_preds_mean = y_preds.mean(axis=0)
+    
+            if self.bnn:
+                y_preds = y_preds.mean(axis=0)
 
-            loss_data_ = self.loss_data(y_preds_mean, y_batch)
-            kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
+            loss_data_ = self.loss_data(y_preds, y_batch)
+            
+            if self.bnn:
+                kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
+            else:
+                kl_loss_ = torch.tensor(0)
 
-            elbo_loss = loss_data_ + kl_loss_
-            elbo_loss.backward()
+            total_loss = loss_data_ + kl_loss_
+            total_loss.backward()
 
             self.opt.step()
 
@@ -60,16 +80,21 @@ class TrainDecoupledElbo():
             n = len(self.validation_loader.dataset)
             n_batches = len(self.validation_loader)
             
-            kl_loss_ = self.K*self.model.kl_divergence_NN()
+            if self.bnn:
+                kl_loss_ = self.K*self.model.kl_divergence_NN()
+            else:
+                kl_loss_ = torch.tensor(0)
 
             for i, vdata in enumerate(self.validation_loader):
 
                 x_val_batch, y_val_batch = vdata
 
                 y_val_preds = self.model(x_val_batch)
-                y_val_preds_mean = y_val_preds.mean(axis=0)
+                
+                if self.bnn:
+                    y_val_preds = y_val_preds.mean(axis=0)
 
-                loss_data_ = self.loss_data(y_val_preds_mean, y_val_batch)
+                loss_data_ = self.loss_data(y_val_preds, y_val_batch)
                 loss_data_running_loss_v += loss_data_
 
             avg_vloss_data = (loss_data_running_loss_v/n_batches).item()
