@@ -1,29 +1,16 @@
 import torch
 
 
-class TrainMSE():
-    def __init__(self, model, opt, loss_data, K, training_loader, validation_loader):
+class TrainDecoupled():
+    
+    def __init__(self, bnn, model, opt, loss_data, K, training_loader, validation_loader):
         self.model = model
         self.opt = opt
         self.loss_data = loss_data
         self.K = K
         self.training_loader = training_loader
         self.validation_loader = validation_loader
-
-
-class TrainDecoupledElbo():
-    
-    def __init__(self, model, opt, loss_data, K, training_loader, validation_loader):
-        self.model = model
-        self.opt = opt
-        self.loss_data = loss_data
-        self.K = K
-        self.training_loader = training_loader
-        self.validation_loader = validation_loader
-        self.bnn = False
-        if str(self.model.linear1) == 'VariationalLayer()':
-            self.bnn = True
-    
+        self.bnn = bnn
     
     def train_one_epoch(self):
         data_running_loss = 0.

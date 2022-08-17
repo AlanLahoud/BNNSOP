@@ -103,7 +103,7 @@ class VariationalNet(nn.Module):
     
     
 class StandardNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv):
+    def __init__(self, input_size, output_size):
         super().__init__()
         self.act1 = nn.ReLU()
         self.linear1 = nn.Linear(input_size, 32)

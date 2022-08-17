@@ -16,9 +16,9 @@ from sklearn.model_selection import train_test_split
 
 # Utils
 import data_generator
-from model import VariationalLayer, VariationalNet
+from model import VariationalLayer, VariationalNet, StandardNet
 
-from train import TrainDecoupledElbo
+from train import TrainDecoupled
 
 
 
@@ -37,21 +37,22 @@ np.random.seed(seed_number)
 torch.manual_seed(seed_number)
 random.seed(seed_number)
 
-if len(sys.argv)!=3:
-    print('Please provide both K and PLV arguments')
+bnn = True
+if len(sys.argv)==1: #Running standard ANN with MSE
+    bnn = False
+elif len(sys.argv)==3: #Running BNN with ELBO
+    K = float(sys.argv[1]) # Regularization parameter (ELBO)
+    PLV = float(sys.argv[2]) # Variance of prior gaussian 
+    if K>50 or K<0:
+        print('Try K between 0 and 50')
+        quit()
+    if PLV<-3 or PLV>6:
+        print('Try PLV between -3 and 6')
+        quit()
+else:
+    print('Please provide both K and PLV arguments to run a BNN or does not provide arguments to run standard ANN')
     quit()
     
-# Mandatory to set parameters
-K = float(sys.argv[1]) # Regularization parameter (ELBO)
-PLV = float(sys.argv[2]) # Variance of prior gaussian 
-
-if K>50 or K<0:
-    print('Try K between 0 and 50')
-    quit()
-
-if PLV<-3 or PLV>6:
-    print('Try PLV between -3 and 6')
-    quit()
 
 # Setting parameters (change if necessary)
 N = 10000 # Total data size
@@ -85,12 +86,17 @@ output_size = y.shape[1]
 
 
 # Model setting
-h = VariationalNet(N_SAMPLES, input_size, output_size, PLV).to(dev)
+if bnn:
+    h = VariationalNet(N_SAMPLES, input_size, output_size, PLV).to(dev)
+else:
+    h = StandardNet(input_size, output_size).to(dev)
+    
 opt_h = torch.optim.Adam(h.parameters(), lr=0.005)
 mse_loss_mean = nn.MSELoss(reduction='mean')
 
-# Training regression with ELBO
-train_elbo = TrainDecoupledElbo(
+# Training regression with ELBO or MSE
+train_elbo = TrainDecoupled(
+                bnn = bnn,
                 model=h,
                 opt=opt_h,
                 loss_data=mse_loss_mean,
