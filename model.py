@@ -106,9 +106,9 @@ class StandardNet(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.act1 = nn.ReLU()
-        self.linear1 = nn.Linear(input_size, 32)
-        self.linear2 = nn.Linear(32, 32)
-        self.linear3 = nn.Linear(32, output_size)
+        self.linear1 = nn.Linear(input_size, 512)
+        self.linear2 = nn.Linear(512, 128)
+        self.linear3 = nn.Linear(128, output_size)
         
     def forward(self, x):
         x = self.linear1(x)

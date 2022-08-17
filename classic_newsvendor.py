@@ -90,8 +90,9 @@ if bnn:
     h = VariationalNet(N_SAMPLES, input_size, output_size, PLV).to(dev)
 else:
     h = StandardNet(input_size, output_size).to(dev)
+    K = 0
     
-opt_h = torch.optim.Adam(h.parameters(), lr=0.005)
+opt_h = torch.optim.Adam(h.parameters(), lr=0.002)
 mse_loss_mean = nn.MSELoss(reduction='mean')
 
 # Training regression with ELBO or MSE
@@ -108,6 +109,9 @@ train_elbo = TrainDecoupled(
 train_elbo.train(EPOCHS=EPOCHS)
 
 # Saving model
-Kstr = str(K).replace('.','')
-plvstr = str(PLV).replace('.','')
-torch.save(train_elbo.model, f'./models/elbo_nv1_{Kstr}_{plvstr}.pkl')
+if bnn:
+    Kstr = str(K).replace('.','')
+    plvstr = str(PLV).replace('.','')
+    torch.save(train_elbo.model, f'./models/elbo_nv1_{Kstr}_{plvstr}.pkl')
+else:
+    torch.save(train_elbo.model, f'./models/mse_nv1.pkl')
