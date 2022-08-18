@@ -55,8 +55,8 @@ else:
     
 
 # Setting parameters (change if necessary)
-N = 10000 # Total data size
-N_train = 6000 # Training data size
+N = 7000 # Total data size
+N_train = 4000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
 EPOCHS = 100 
@@ -92,7 +92,7 @@ else:
     h = StandardNet(input_size, output_size).to(dev)
     K = 0
     
-opt_h = torch.optim.Adam(h.parameters(), lr=0.002)
+opt_h = torch.optim.Adam(h.parameters(), lr=0.004)
 mse_loss_mean = nn.MSELoss(reduction='mean')
 
 # Training regression with ELBO or MSE

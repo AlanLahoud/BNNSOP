@@ -77,6 +77,7 @@ class VariationalLayer(nn.Module):
 class VariationalNet(nn.Module):
     def __init__(self, n_samples, input_size, output_size, plv):
         super().__init__()
+        self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         self.linear1 = VariationalLayer(input_size, 32, 0, plv, n_samples)
@@ -101,10 +102,17 @@ class VariationalNet(nn.Module):
         )
         return kl
     
+    def update_n_samples(self, n_samples):
+        self.n_samples = n_samples
+        self.linear1.n_samples = n_samples
+        self.linear2.n_samples = n_samples
+        self.linear3.n_samples = n_samples
+        
     
 class StandardNet(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
+        self.output_type_dist = False
         self.act1 = nn.ReLU()
         self.linear1 = nn.Linear(input_size, 512)
         self.linear2 = nn.Linear(512, 128)
