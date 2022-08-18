@@ -1,5 +1,6 @@
 import sys
 
+import pandas as pd
 import numpy as np
 import math
 import random
@@ -20,6 +21,7 @@ from model import VariationalLayer, VariationalNet, StandardNet
 
 from train import TrainDecoupled
 
+import classical_newsvendor_utils
 
 
 is_cuda = False
@@ -112,6 +114,25 @@ train_elbo.train(EPOCHS=EPOCHS)
 if bnn:
     Kstr = str(K).replace('.','')
     plvstr = str(PLV).replace('.','')
-    torch.save(train_elbo.model, f'./models/elbo_nv1_{Kstr}_{plvstr}.pkl')
+    model_name = f'elbo_nv1_{Kstr}_{plvstr}'
 else:
-    torch.save(train_elbo.model, f'./models/mse_nv1.pkl')
+    model_name = 'mse_nv1'
+    
+torch.save(train_elbo.model, f'./models/{model_name}.pkl')
+    
+# Computing Optimization Problem results 
+X_val = validation_loader.dataset.dataset.X[validation_loader.dataset.indices]
+y_val = validation_loader.dataset.dataset.y[validation_loader.dataset.indices]
+
+M = 1000
+sell_price = 200
+dict_results_nr = {}
+for cost_price in (np.arange(0.1,1,0.1)*sell_price):
+    quantile = (sell_price-cost_price)/sell_price
+    dict_results_nr[str(quantile)] = round(
+        classical_newsvendor_utils.compute_norm_regret(
+        X_val, y_val, train_elbo.model, M, sell_price, cost_price).item(), 
+        3)
+    
+df_nr = pd.DataFrame.from_dict(dict_results_nr, orient='index', columns=['NR'])
+df_nr.to_csv(f'./newsvendor_results/{model_name}_nr.csv')
