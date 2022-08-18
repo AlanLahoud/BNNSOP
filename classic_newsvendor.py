@@ -54,11 +54,14 @@ elif len(sys.argv)==3: #Running BNN with ELBO
 else:
     print('Please provide both K and PLV arguments to run a BNN or does not provide arguments to run standard ANN')
     quit()
-    
+  
+
+eps = 0.1
+
 
 # Setting parameters (change if necessary)
-N = 7000 # Total data size
-N_train = 4000 # Training data size
+N = 10000 # Total data size
+N_train = 6000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
 EPOCHS = 100 
@@ -91,7 +94,7 @@ output_size = y.shape[1]
 if bnn:
     h = VariationalNet(N_SAMPLES, input_size, output_size, PLV).to(dev)
 else:
-    h = StandardNet(input_size, output_size).to(dev)
+    h = StandardNet(input_size, output_size, eps).to(dev)
     K = 0
     
 opt_h = torch.optim.Adam(h.parameters(), lr=0.004)
@@ -116,7 +119,8 @@ if bnn:
     plvstr = str(PLV).replace('.','')
     model_name = f'elbo_nv1_{Kstr}_{plvstr}'
 else:
-    model_name = 'mse_nv1'
+    epstr = str(eps).replace('.','')
+    model_name = f'mse_nv1_{epstr}'
     
 torch.save(train_elbo.model, f'./models/{model_name}.pkl')
     

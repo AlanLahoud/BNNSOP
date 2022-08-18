@@ -3,7 +3,7 @@ import torch
 def get_dist_pred_from_bnn(X_val, model, M):
     M = 1000
     model.update_n_samples(n_samples=M)
-    return model(X_val)[:,:,0]
+    return model.forward_dist(X_val)[:,:,0]
 
 def get_argmins_from_dist(sell_price, cost_price, dist):
 

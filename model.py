@@ -80,9 +80,9 @@ class VariationalNet(nn.Module):
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
-        self.linear1 = VariationalLayer(input_size, 32, 0, plv, n_samples)
-        self.linear2 = VariationalLayer(32, 32, 0, plv, n_samples)
-        self.linear3 = VariationalLayer(32, output_size, 0, plv, n_samples)
+        self.linear1 = VariationalLayer(input_size, 512, 0, plv, n_samples)
+        self.linear2 = VariationalLayer(512, 128, 0, plv, n_samples)
+        self.linear3 = VariationalLayer(128, output_size, 0, plv, n_samples)
     
     def forward(self, x):
         x = torch.unsqueeze(x, 0)
@@ -93,6 +93,9 @@ class VariationalNet(nn.Module):
         x = self.act1(x)
         x = self.linear3(x)
         return x
+    
+    def forward_dist(self, x):
+        return self(x)
     
     def kl_divergence_NN(self):
         kl = (
@@ -110,9 +113,13 @@ class VariationalNet(nn.Module):
         
     
 class StandardNet(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, input_size, output_size, eps):
         super().__init__()
+        self.n_samples = 1
         self.output_type_dist = False
+        self.eps = eps
+        if eps > 0:
+            self.output_type_dist = True
         self.act1 = nn.ReLU()
         self.linear1 = nn.Linear(input_size, 512)
         self.linear2 = nn.Linear(512, 128)
@@ -125,9 +132,18 @@ class StandardNet(nn.Module):
         x = self.act1(x)
         x = self.linear3(x)
         return x   
+    
+    def update_n_samples(self, n_samples):
+        self.n_samples = n_samples
         
+    def forward_dist(self, x):
+        y = self(x)
+        y = y.unsqueeze(0)
+        y = y.expand(self.n_samples, -1, -1).clone()
+        y += self.eps*torch.randn(y.shape)/20
+        return y
         
-        
+
         
         
         
