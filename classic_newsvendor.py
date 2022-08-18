@@ -46,8 +46,8 @@ if len(sys.argv)==2: #Running standard ANN with MSE
 elif len(sys.argv)==3: #Running BNN with ELBO
     K = float(sys.argv[1]) # Regularization parameter (ELBO)
     PLV = float(sys.argv[2]) # Variance of prior gaussian 
-    if K>50 or K<0:
-        print('Try K between 0 and 50')
+    if K>10000 or K<0:
+        print('Try K between 0 and 10000')
         quit()
     if PLV<-3 or PLV>6:
         print('Try PLV between -3 and 6')
