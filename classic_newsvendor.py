@@ -40,8 +40,9 @@ torch.manual_seed(seed_number)
 random.seed(seed_number)
 
 bnn = True
-if len(sys.argv)==1: #Running standard ANN with MSE
+if len(sys.argv)==2: #Running standard ANN with MSE
     bnn = False
+    eps = float(sys.argv[1])
 elif len(sys.argv)==3: #Running BNN with ELBO
     K = float(sys.argv[1]) # Regularization parameter (ELBO)
     PLV = float(sys.argv[2]) # Variance of prior gaussian 
@@ -52,16 +53,13 @@ elif len(sys.argv)==3: #Running BNN with ELBO
         print('Try PLV between -3 and 6')
         quit()
 else:
-    print('Please provide both K and PLV arguments to run a BNN or does not provide arguments to run standard ANN')
+    print('Please provide both K and PLV arguments to run a BNN or provide only noise rate argument to run ANN')
     quit()
-  
-
-eps = 0.1
 
 
 # Setting parameters (change if necessary)
-N = 10000 # Total data size
-N_train = 6000 # Training data size
+N = 8000 # Total data size
+N_train = 5000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
 EPOCHS = 100 
@@ -97,7 +95,7 @@ else:
     h = StandardNet(input_size, output_size, eps).to(dev)
     K = 0
     
-opt_h = torch.optim.Adam(h.parameters(), lr=0.004)
+opt_h = torch.optim.Adam(h.parameters(), lr=0.005)
 mse_loss_mean = nn.MSELoss(reduction='mean')
 
 # Training regression with ELBO or MSE

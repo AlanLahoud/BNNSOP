@@ -63,7 +63,7 @@ class VariationalLayer(nn.Module):
         w = self.sample_weight(theta_mu, theta_rho)
         Q = self.variational(w, theta_mu, theta_rho)
         P = self.prior(w)
-        KL = Q - P 
+        KL = Q - P
         return KL
     
     def forward(self, x_layer):
@@ -80,9 +80,16 @@ class VariationalNet(nn.Module):
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
-        self.linear1 = VariationalLayer(input_size, 512, 0, plv, n_samples)
-        self.linear2 = VariationalLayer(512, 128, 0, plv, n_samples)
-        self.linear3 = VariationalLayer(128, output_size, 0, plv, n_samples)
+        # Hidden layer sizes, if you add a layer you have to modify the code below
+        hl_sizes = [128, 64] 
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples)
+        self.linear3 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples)
+        self.neurons = (
+            (input_size+1)*hl_sizes[0] 
+            + (hl_sizes[0]+1)*hl_sizes[1] 
+            + (hl_sizes[1]+1)*output_size
+        )
     
     def forward(self, x):
         x = torch.unsqueeze(x, 0)
@@ -102,7 +109,7 @@ class VariationalNet(nn.Module):
             self.linear1.kl_divergence_layer() 
             + self.linear2.kl_divergence_layer()
             + self.linear3.kl_divergence_layer()
-        )
+        )/self.neurons
         return kl
     
     def update_n_samples(self, n_samples):
@@ -122,8 +129,8 @@ class StandardNet(nn.Module):
             self.output_type_dist = True
         self.act1 = nn.ReLU()
         self.linear1 = nn.Linear(input_size, 512)
-        self.linear2 = nn.Linear(512, 128)
-        self.linear3 = nn.Linear(128, output_size)
+        self.linear2 = nn.Linear(512, 256)
+        self.linear3 = nn.Linear(256, output_size)
         
     def forward(self, x):
         x = self.linear1(x)
