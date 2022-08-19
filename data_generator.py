@@ -25,16 +25,19 @@ def data_1to1(N, xl=-1, xh=1, noise_level=1, noise_type='gaussian'):
     # Noise
     if noise_type == 'gaussian':
         n = np.random.normal(0, noise_level, N)*np.abs(X**2)
+        y = np.abs(y_perfect + n)
     elif noise_type == 'multimodal':
         n = np.hstack(
-            (np.random.normal(-4, 2*noise_level, N//2), 
-             np.random.normal(2, 1*noise_level, N-N//2))
-        )*X
+            (np.random.normal(6, noise_level, N//4), 
+             np.random.normal(2, noise_level, N-N//4))
+        )
+        np.random.shuffle(n)
+        y = y_perfect + n*(X+1)
     else:
         print('noise_type not considered')
         exit()
         
-    y = np.abs(y_perfect + n)
+    
     
     X = np.expand_dims(X, axis=1)
     y = np.expand_dims(y, axis=1)
