@@ -150,7 +150,6 @@ class StandardNet(nn.Module):
         y += self.eps*torch.randn(y.shape)/20
         return y
         
-
         
         
         
