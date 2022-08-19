@@ -63,11 +63,12 @@ N_train = 5000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
 EPOCHS = 100 
+noise_type = 'multimodal'
 
 # Data manipulation
 N_valid = N - N_train
-X, y = data_generator.data_1to1(N)
-X, y_perfect = data_generator.data_1to1(N, noise_level=1)
+X, y = data_generator.data_1to1(N, noise_level=1, noise_type = noise_type)
+#X, y_perfect = data_generator.data_1to1(N, noise_level=1)
 X = torch.tensor(X, dtype=torch.float32)
 y = torch.tensor(y, dtype=torch.float32)
 dataset = data_generator.ArtificialDataset(X, y)
@@ -120,7 +121,7 @@ else:
     epstr = str(eps).replace('.','')
     model_name = f'mse_nv1_{epstr}'
     
-torch.save(train_elbo.model, f'./models/{model_name}.pkl')
+torch.save(train_elbo.model, f'./models/{model_name}_{noise_type}.pkl')
     
 # Computing Optimization Problem results 
 X_val = validation_loader.dataset.dataset.X[validation_loader.dataset.indices]
@@ -137,4 +138,4 @@ for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         3)
     
 df_nr = pd.DataFrame.from_dict(dict_results_nr, orient='index', columns=['NR'])
-df_nr.to_csv(f'./newsvendor_results/{model_name}_nr.csv')
+df_nr.to_csv(f'./newsvendor_results/{model_name}_{noise_type}_nr.csv')

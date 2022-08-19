@@ -17,13 +17,23 @@ class ArtificialDataset(torch.utils.data.Dataset):
         return X_i, y_i
 
 
-def data_1to1(N, xl=-1, xh=1, noise_level=1):
+def data_1to1(N, xl=-1, xh=1, noise_level=1, noise_type='gaussian'):
     X = np.arange(xl, xh, (xh-xl)/N)
     
     y_perfect = np.abs(np.abs(6*X)*np.sin(X) + np.sin(12*X))
 
     # Noise
-    n = np.random.normal(0, noise_level, N)*np.abs(X**2)
+    if noise_type == 'gaussian':
+        n = np.random.normal(0, noise_level, N)*np.abs(X**2)
+    elif noise_type == 'multimodal':
+        n = np.hstack(
+            (np.random.normal(-4, 2*noise_level, N//2), 
+             np.random.normal(2, 1*noise_level, N-N//2))
+        )*X
+    else:
+        print('noise_type not considered')
+        exit()
+        
     y = np.abs(y_perfect + n)
     
     X = np.expand_dims(X, axis=1)
