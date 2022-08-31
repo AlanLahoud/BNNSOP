@@ -1,6 +1,5 @@
 import torch
 
-
 class TrainDecoupled():
     
     def __init__(self, bnn, model, opt, loss_data, K, training_loader, validation_loader):
@@ -11,6 +10,10 @@ class TrainDecoupled():
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.bnn = bnn
+        
+        self.logsqrttwopi = torch.log(
+            torch.sqrt(2*torch.tensor(torch.pi)))
+      
     
     def train_one_epoch(self):
         data_running_loss = 0.
@@ -18,7 +21,7 @@ class TrainDecoupled():
 
         n = len(self.training_loader.dataset)
         n_batches = len(self.training_loader)
-        
+                
         for i, data in enumerate(self.training_loader):
 
             x_batch, y_batch = data
@@ -26,15 +29,22 @@ class TrainDecoupled():
  
             y_preds = self.model(x_batch)
     
-            if self.bnn:
-                y_preds = y_preds.mean(axis=0)
 
-            loss_data_ = self.loss_data(y_preds, y_batch)
-            
             if self.bnn:
+                #y_preds = y_preds.mean(axis=0)
+                y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
+                loss_data_ = self.loss_data(y_preds, y_batch)
+                loss_data_ = loss_data_.mean(axis=1) #through batch
+                loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
+
             else:
+                y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
+                loss_data_ = self.loss_data(y_preds, y_batch)
+                loss_data_ = loss_data_.mean(axis=0) #through batch
                 kl_loss_ = torch.tensor(0)
+                
+            loss_data_ = loss_data_.mean(axis=-1) #through output dimension
 
             total_loss = loss_data_ + kl_loss_
             total_loss.backward()
@@ -78,10 +88,18 @@ class TrainDecoupled():
 
                 y_val_preds = self.model(x_val_batch)
                 
-                if self.bnn:
-                    y_val_preds = y_val_preds.mean(axis=0)
-
+                y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
                 loss_data_ = self.loss_data(y_val_preds, y_val_batch)
+                
+                if self.bnn:
+                    loss_data_ = loss_data_.mean(axis=1) #through batch
+                    loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
+                    
+                else:
+                    loss_data_ = loss_data_.mean(axis=0) #through batch
+                
+                loss_data_ = loss_data_.mean(axis=-1) #through output dimension
+
                 loss_data_running_loss_v += loss_data_
 
             avg_vloss_data = (loss_data_running_loss_v/n_batches).item()
@@ -92,7 +110,7 @@ class TrainDecoupled():
             print('DATA LOSS \t train {} valid {}'.format(
                 round(avg_loss_data_loss, 2), round(avg_vloss_data, 2)))
             print('KL LOSS \t train {} valid {}'.format(
-                round(avg_kl_loss, 2), round(avg_vklloss, 2)))
+                round(avg_kl_loss/(self.K+0.000001), 2), round(avg_vklloss/(self.K+0.000001), 2)))
             print('ELBO LOSS \t train {} valid {}'.format(
                 round(avg_loss, 2), round(avg_vloss, 2)))
 

@@ -22,7 +22,7 @@ class VariationalLayer(nn.Module):
                 -0.5, 0.5)).float()
         self.theta_rho = nn.Parameter(
             torch.Tensor(input_size, output_size).uniform_(
-                -5,-4)).float()
+                -4,-3)).float()
         
         # Defining some constants
         self.logsqrttwopi = torch.log(
@@ -81,13 +81,16 @@ class VariationalNet(nn.Module):
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         # Hidden layer sizes, if you add a layer you have to modify the code below
-        hl_sizes = [128, 64] 
+        hl_sizes = [32, 16] 
         self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples)
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples)
-        self.linear3 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples)
+        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples)
+        self.linear4 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples)
+        self.linear5 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1] 
+            + 2*(hl_sizes[1]+1)*hl_sizes[1] 
             + (hl_sizes[1]+1)*output_size
         )
     
@@ -99,6 +102,10 @@ class VariationalNet(nn.Module):
         x = self.linear2(x)
         x = self.act1(x)
         x = self.linear3(x)
+        x = self.act1(x)
+        x = self.linear4(x)
+        x = self.act1(x)
+        x = self.linear5(x)
         return x
     
     def forward_dist(self, x):
@@ -109,6 +116,8 @@ class VariationalNet(nn.Module):
             self.linear1.kl_divergence_layer() 
             + self.linear2.kl_divergence_layer()
             + self.linear3.kl_divergence_layer()
+            + self.linear4.kl_divergence_layer()
+            + self.linear5.kl_divergence_layer()
         )/self.neurons
         return kl
     
@@ -117,6 +126,80 @@ class VariationalNet(nn.Module):
         self.linear1.n_samples = n_samples
         self.linear2.n_samples = n_samples
         self.linear3.n_samples = n_samples
+        self.linear4.n_samples = n_samples
+        self.linear5.n_samples = n_samples
+        
+        
+class VariationalNet2(nn.Module):
+    def __init__(self, n_samples, input_size, output_size, plv):
+        super().__init__()
+        self.output_type_dist = True
+        self.n_samples = n_samples
+        self.act1 = nn.ReLU()
+        self.act2 = nn.Tanh()
+        # Hidden layer sizes, if you add a layer you have to modify the code below
+        hl_sizes = [64, 32] 
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[0], 0, plv, n_samples)
+        self.linear3 = VariationalLayer(hl_sizes[0], hl_sizes[0], 0, plv, n_samples)
+        self.linear4 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples)
+        self.linear5A = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples)
+        self.linear5B = VariationalLayer(hl_sizes[1], output_size, 0, 2*plv, n_samples)
+        self.linear5C = VariationalLayer(hl_sizes[1], output_size, 0, 4*plv, n_samples)
+        self.linear5D = VariationalLayer(hl_sizes[1], output_size, 0, 8*plv, n_samples)
+        self.neurons = (
+            (input_size+1)*hl_sizes[0] 
+            + 2*(hl_sizes[0]+1)*hl_sizes[1]
+            + (hl_sizes[0]+1)*hl_sizes[1] 
+            + (hl_sizes[0]+1)*hl_sizes[1] 
+            + (hl_sizes[1]+1)*output_size
+            + (hl_sizes[1]+1)*output_size
+        )
+    
+    def forward(self, x):
+        x = torch.unsqueeze(x, 0)
+        x = x.expand((self.n_samples, x.shape[1], x.shape[2]))
+        x = self.linear1(x)
+        x = self.act2(x)
+        x = self.linear2(x)
+        x = self.act1(x)
+        x = self.linear3(x)
+        x = self.act1(x)
+        x = self.linear4(x)
+        x = self.act1(x)
+        xA = self.linear5A(x)
+        xB = self.linear5B(x)
+        xC = self.linear5C(x)
+        xD = self.linear5D(x)
+        y = torch.vstack((xA, xB, xC, xD))
+        return y
+    
+    def forward_dist(self, x):
+        return self(x)
+    
+    def kl_divergence_NN(self):
+        kl = (
+            self.linear1.kl_divergence_layer() 
+            + self.linear2.kl_divergence_layer()
+            + self.linear3.kl_divergence_layer()
+            + self.linear4.kl_divergence_layer()
+            + self.linear5A.kl_divergence_layer()
+            + self.linear5B.kl_divergence_layer()
+            + self.linear5C.kl_divergence_layer()
+            + self.linear5D.kl_divergence_layer()
+        )/self.neurons
+        return kl
+    
+    def update_n_samples(self, n_samples):
+        self.n_samples = n_samples
+        self.linear1.n_samples = n_samples
+        self.linear2.n_samples = n_samples
+        self.linear3.n_samples = n_samples
+        self.linear4.n_samples = n_samples
+        self.linear5A.n_samples = n_samples
+        self.linear5B.n_samples = n_samples
+        self.linear5C.n_samples = n_samples
+        self.linear5D.n_samples = n_samples
         
     
 class StandardNet(nn.Module):
@@ -151,9 +234,8 @@ class StandardNet(nn.Module):
         return y
         
         
-        
-        
-        
+       
+   
         
         
         

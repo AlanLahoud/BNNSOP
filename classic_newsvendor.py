@@ -17,7 +17,7 @@ from sklearn.model_selection import train_test_split
 
 # Utils
 import data_generator
-from model import VariationalLayer, VariationalNet, StandardNet
+from model import VariationalLayer, VariationalNet, StandardNet, VariationalNet2
 
 from train import TrainDecoupled
 
@@ -60,9 +60,9 @@ else:
 # Setting parameters (change if necessary)
 N = 8000 # Total data size
 N_train = 5000 # Training data size
-N_SAMPLES = 16 # Sampling size while training
-BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 100 
+N_SAMPLES = 8 # Sampling size while training
+BATCH_SIZE_LOADER = 64 # Standard batch size
+EPOCHS = 350 
 noise_type = 'multimodal'
 
 # Data manipulation
@@ -96,15 +96,15 @@ else:
     h = StandardNet(input_size, output_size, eps).to(dev)
     K = 0
     
-opt_h = torch.optim.Adam(h.parameters(), lr=0.005)
-mse_loss_mean = nn.MSELoss(reduction='mean')
+opt_h = torch.optim.Adam(h.parameters(), lr=0.001)
+mse_loss = nn.MSELoss(reduction='none')
 
 # Training regression with ELBO or MSE
 train_elbo = TrainDecoupled(
                 bnn = bnn,
                 model=h,
                 opt=opt_h,
-                loss_data=mse_loss_mean,
+                loss_data=mse_loss,
                 K=K,
                 training_loader=training_loader,
                 validation_loader=validation_loader
@@ -116,7 +116,7 @@ train_elbo.train(EPOCHS=EPOCHS)
 if bnn:
     Kstr = str(K).replace('.','')
     plvstr = str(PLV).replace('.','')
-    model_name = f'elbo_nv1_{Kstr}_{plvstr}'
+    model_name = f'elbo2_nv1_{Kstr}_{plvstr}'
 else:
     epstr = str(eps).replace('.','')
     model_name = f'mse_nv1_{epstr}'
