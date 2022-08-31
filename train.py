@@ -34,8 +34,9 @@ class TrainDecoupled():
                 #y_preds = y_preds.mean(axis=0)
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 loss_data_ = self.loss_data(y_preds, y_batch)
-                loss_data_ = loss_data_.mean(axis=1) #through batch
-                loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
+                loss_data_ = loss_data_.min(axis=0).values.mean() + loss_data_.min(axis=1).values.mean()
+                #loss_data_ = loss_data_.mean(axis=1) #through batch
+                #loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
 
             else:
@@ -92,13 +93,12 @@ class TrainDecoupled():
                 loss_data_ = self.loss_data(y_val_preds, y_val_batch)
                 
                 if self.bnn:
-                    loss_data_ = loss_data_.mean(axis=1) #through batch
-                    loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
+                    loss_data_ = loss_data_.min(axis=0).values.mean() + loss_data_.min(axis=1).values.mean()
                     
                 else:
                     loss_data_ = loss_data_.mean(axis=0) #through batch
                 
-                loss_data_ = loss_data_.mean(axis=-1) #through output dimension
+                #loss_data_ = loss_data_.mean(axis=-1) #through output dimension
 
                 loss_data_running_loss_v += loss_data_
 
@@ -108,7 +108,7 @@ class TrainDecoupled():
             avg_vloss = avg_vloss_data + avg_vklloss
 
             print('DATA LOSS \t train {} valid {}'.format(
-                round(avg_loss_data_loss, 2), round(avg_vloss_data, 2)))
+                round(avg_loss_data_loss, 3), round(avg_vloss_data, 3)))
             print('KL LOSS \t train {} valid {}'.format(
                 round(avg_kl_loss/(self.K+0.000001), 2), round(avg_vklloss/(self.K+0.000001), 2)))
             print('ELBO LOSS \t train {} valid {}'.format(

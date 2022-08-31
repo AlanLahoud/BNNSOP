@@ -91,7 +91,7 @@ output_size = y.shape[1]
 
 # Model setting
 if bnn:
-    h = VariationalNet(N_SAMPLES, input_size, output_size, PLV).to(dev)
+    h = VariationalNet2(N_SAMPLES, input_size, output_size, PLV).to(dev)
 else:
     h = StandardNet(input_size, output_size, eps).to(dev)
     K = 0
