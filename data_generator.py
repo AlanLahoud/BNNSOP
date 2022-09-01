@@ -23,7 +23,7 @@ class ArtificialDataset(torch.utils.data.Dataset):
 def data_1to1(N, xl=-1, xh=1, noise_level=1, noise_type='gaussian'):
     X = np.arange(xl, xh, (xh-xl)/N)
     
-    y_perfect = np.abs(np.abs(6*X)*np.sin(X) + np.sin(12*X))
+    y_perfect = np.abs(np.abs(6*X)*np.sin(X) + 4*np.sin(6*X))
 
     # Noise
     if noise_type == 'gaussian':
