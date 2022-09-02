@@ -31,6 +31,7 @@ class VariationalLayer(nn.Module):
         
         # Defining number of samples for forward
         self.n_samples = n_samples
+
     
     def rho_to_sigma(self, theta_rho):
         return torch.log(1 + torch.exp(theta_rho))

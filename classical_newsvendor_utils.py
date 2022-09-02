@@ -1,7 +1,6 @@
 import torch
 
 def get_dist_pred_from_bnn(X_val, model, M):
-    M = 1000
     model.update_n_samples(n_samples=M)
     return model.forward_dist(X_val)[:,:,0]
 
@@ -38,6 +37,19 @@ def compute_norm_regret(X_val, y_val, model, M, sell_price, cost_price):
         Y_pred = model(X_val)
         z_pred = get_argmins_from_value(Y_pred[:,0])
 
+    z_best = get_argmins_from_value(y_val[:,0])
+
+    profit_pred = profit_sum(z_pred, y_val[:,0], sell_price, cost_price)
+    profit_best = profit_sum(z_best, y_val[:,0], sell_price, cost_price)
+
+    nr = compute_norm_regret_from_profits(profit_pred, profit_best)
+    
+    return nr
+
+
+def compute_norm_regret_from_preds(X_val, y_val, Y_pred_dist, M, sell_price, cost_price):
+
+    z_pred = get_argmins_from_dist(sell_price, cost_price, Y_pred_dist)
     z_best = get_argmins_from_value(y_val[:,0])
 
     profit_pred = profit_sum(z_pred, y_val[:,0], sell_price, cost_price)

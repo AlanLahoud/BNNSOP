@@ -46,7 +46,7 @@ class TrainFlowDecoupled():
                     ln_p_Xval = self.dist_X.log_prob(X_val)
                     ln_p_yval_given_Xval = self.dist_y_given_X.condition(X_val.detach()).log_prob(y_val.detach())
                     loss_val = -(ln_p_Xval + ln_p_yval_given_Xval).mean()
-                    print(f'step: {step}, train loss: {loss.item()}, val loss: {loss_val.item()}')
+                    print(f'step: {step}, train loss: {round(loss.item(), 5)}, val loss: {round(loss_val.item(), 5)}')
         
         return self.dist_y_given_X
         
