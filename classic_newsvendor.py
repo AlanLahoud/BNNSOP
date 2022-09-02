@@ -14,6 +14,9 @@ import torch.multiprocessing as mp
 from datetime import datetime
 
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+import joblib
 
 # Utils
 import data_generator
@@ -21,6 +24,8 @@ from model import VariationalLayer, VariationalNet, StandardNet, VariationalNet2
 from train import TrainDecoupled
 import classical_newsvendor_utils as cnu
 import train_normflow
+
+
 
 is_cuda = False
 dev = torch.device('cpu')  
@@ -39,8 +44,10 @@ random.seed(seed_number)
 
 method_name = sys.argv[1]
 
+bnn = False
 if method_name == 'bnn':
     assert (len(sys.argv)==3)
+    bnn = True
     K = float(sys.argv[2])
     PLV = 1
     if K>10000 or K<0:
@@ -56,34 +63,48 @@ else:
     quit()
     
 model_name = method_name
-for i in range(1, len(sys.argv)-1):
+for i in range(2, len(sys.argv)):
     model_name += sys.argv[i]
 
 
 # Setting parameters (change if necessary)
 N = 8000 # Total data size
 N_train = 5000 # Training data size
-N_SAMPLES = 8 # Sampling size while training
-BATCH_SIZE_LOADER = 64 # Standard batch size
-EPOCHS = 350 
+N_SAMPLES = 16 # Sampling size while training
+BATCH_SIZE_LOADER = 32 # Standard batch size
+EPOCHS = 300 
 noise_type = 'multimodal'
 
 # Data manipulation
 N_valid = N - N_train
-X, y = data_generator.data_1to1(N, noise_level=1, noise_type = noise_type)
+X, y_original = data_generator.data_1to1(N_train, noise_level=1, noise_type = noise_type)
+
+# Output normalization
+scaler = StandardScaler()
+scaler.fit(y_original)
+tmean = torch.tensor(scaler.mean_.item())
+tstd = torch.tensor(scaler.scale_.item())
+joblib.dump(scaler, 'scaler.gz')
+
+def inverse_transform(yy):
+    return yy*tstd + tmean
+
+y = scaler.transform(y_original).copy()
 X = torch.tensor(X, dtype=torch.float32)
 y = torch.tensor(y, dtype=torch.float32)
 
-dataset = data_generator.ArtificialDataset(X, y)
-
-data_train, data_valid = torch.utils.data.random_split(
-    dataset, [N_train, N_valid], 
-    generator=torch.manual_seed(seed_number))
-
+data_train = data_generator.ArtificialDataset(X, y)
 training_loader = torch.utils.data.DataLoader(
     data_train, batch_size=BATCH_SIZE_LOADER,
     shuffle=False, num_workers=mp.cpu_count())
 
+X_val, y_val_original = data_generator.data_1to1(N_valid, noise_level=1, noise_type = noise_type)
+y_val = scaler.transform(y_val_original).copy()
+X_val = torch.tensor(X_val, dtype=torch.float32)
+y_val_original = torch.tensor(y_val_original, dtype=torch.float32)
+y_val = torch.tensor(y_val, dtype=torch.float32)
+
+data_valid = data_generator.ArtificialDataset(X_val, y_val)
 validation_loader = torch.utils.data.DataLoader(
     data_valid, batch_size=BATCH_SIZE_LOADER,
     shuffle=False, num_workers=mp.cpu_count())
@@ -91,8 +112,8 @@ validation_loader = torch.utils.data.DataLoader(
 input_size = X.shape[1]
 output_size = y.shape[1]
 
-X_val = validation_loader.dataset.dataset.X[validation_loader.dataset.indices]
-y_val = validation_loader.dataset.dataset.y[validation_loader.dataset.indices]
+#X_val = validation_loader.dataset.dataset.X[validation_loader.dataset.indices]
+#y_val = validation_loader.dataset.dataset.y[validation_loader.dataset.indices]
 
 if method_name != 'flow':
 
@@ -125,11 +146,15 @@ if method_name != 'flow':
     M = 1000
     sell_price = 200
     dict_results_nr = {}
+    train_NN.model.update_n_samples(n_samples=M)
+    y_pred = train_NN.model.forward_dist(X_val)[:,:,0]
+    y_pred = inverse_transform(y_pred)
+    
     for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
         dict_results_nr[str(quantile)] = round(
-            cnu.compute_norm_regret(
-            X_val, y_val, train_elbo.model, M, sell_price, cost_price).item(), 
+            cnu.compute_norm_regret_from_preds(
+            X_val, y_val_original, y_pred, M, sell_price, cost_price, method_name).item(), 
             3)
 
 
@@ -145,14 +170,15 @@ else:
     y_pred = torch.zeros((M, N))
     for i in range(0, N):
         y_pred[:,i] = pyx.condition(X_val[i]).sample(torch.Size([M,])).squeeze()
-        
+    
+    y_pred = inverse_transform(y_pred)
     sell_price = 200
     dict_results_nr = {}
     for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
         dict_results_nr[str(quantile)] = round(
             cnu.compute_norm_regret_from_preds(
-            X_val, y_val, y_pred, M, sell_price, cost_price).item(), 
+            X_val, y_val_original, y_pred, M, sell_price, cost_price, method_name).item(), 
             3)             
 
 torch.save(model_used, f'./models/{model_name}_{noise_type}.pkl')

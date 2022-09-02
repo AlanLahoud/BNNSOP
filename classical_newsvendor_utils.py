@@ -47,9 +47,13 @@ def compute_norm_regret(X_val, y_val, model, M, sell_price, cost_price):
     return nr
 
 
-def compute_norm_regret_from_preds(X_val, y_val, Y_pred_dist, M, sell_price, cost_price):
+def compute_norm_regret_from_preds(X_val, y_val, Y_pred, M, sell_price, cost_price, method_name):
 
-    z_pred = get_argmins_from_dist(sell_price, cost_price, Y_pred_dist)
+    if method_name=='ann':
+        z_pred = get_argmins_from_value(Y_pred[:,0])
+    else:
+        z_pred = get_argmins_from_dist(sell_price, cost_price, Y_pred)
+
     z_best = get_argmins_from_value(y_val[:,0])
 
     profit_pred = profit_sum(z_pred, y_val[:,0], sell_price, cost_price)

@@ -3,7 +3,6 @@ import torch
 from sklearn import preprocessing
 
 
-
 class ArtificialDataset(torch.utils.data.Dataset):
     def __init__(self, X, y):
         self.X = X
@@ -40,10 +39,10 @@ def data_1to1(N, xl=-1, xh=1, noise_level=1, noise_type='gaussian'):
         print('noise_type not considered')
         exit()
     
-    #X = np.expand_dims(preprocessing.scale(X), axis=1)
+    X = np.expand_dims(preprocessing.scale(X), axis=1)
     #y = np.expand_dims(preprocessing.scale(y), axis=1)
     
-    X = np.expand_dims(X, axis=1)
+    #X = np.expand_dims(X, axis=1)
     y = np.expand_dims(y, axis=1)
     
     return X, y
