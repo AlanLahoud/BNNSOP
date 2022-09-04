@@ -1,4 +1,6 @@
+import sys
 import torch
+import classical_newsvendor_utils as cnu
 
 class TrainDecoupled():
     
@@ -112,5 +114,102 @@ class TrainDecoupled():
                 round(avg_kl_loss/(self.K+0.000001), 2), round(avg_vklloss/(self.K+0.000001), 2)))
             print('ELBO LOSS \t train {} valid {}'.format(
                 round(avg_loss, 2), round(avg_vloss, 2)))
+
+            epoch_number += 1
+            
+            
+            
+            
+            
+            
+class TrainCombined():
+    
+    def __init__(self, bnn, model, opt, training_loader, validation_loader, sell_price, cost_price):
+        self.model = model
+        self.opt = opt
+        self.training_loader = training_loader
+        self.validation_loader = validation_loader
+        self.bnn = bnn
+        self.sell_price = sell_price
+        self.cost_price = cost_price
+       
+    
+    def end_loss_ann(self, y_pred, y_true):
+        z_pred = cnu.get_argmins_from_value(y_pred)
+        end_loss = -cnu.profit_sum(z_pred, y_true, self.sell_price, self.cost_price)
+        return end_loss
+    
+    def end_loss_bnn(self, y_pred_dist, y_true):
+        z_pred = cnu.get_argmins_from_dist(self.sell_price, self.cost_price, y_pred_dist)
+        end_loss = -cnu.profit_sum(z_pred, y_true, self.sell_price, self.cost_price)
+        return end_loss
+        
+    def train_one_epoch(self):
+
+        n = len(self.training_loader.dataset)
+        n_batches = len(self.training_loader)
+        
+        end_total_loss = 0
+        
+        for i, data in enumerate(self.training_loader):
+
+            x_batch, y_batch = data
+            self.opt.zero_grad()
+ 
+            y_preds = self.model(x_batch)
+
+            if self.bnn:
+                y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
+                total_loss = self.end_loss_bnn(y_preds, y_batch)
+
+            else:
+                total_loss = self.end_loss_ann(y_preds, y_batch)
+                
+
+            total_loss.backward()
+            self.opt.step()
+
+            end_total_loss += total_loss.item()
+
+        end_total_loss = end_total_loss/n_batches
+
+        return end_total_loss
+    
+    
+    
+    def train(self, EPOCHS=150):
+        epoch_number = 0
+
+        for epoch in range(EPOCHS):
+            print('------------------EPOCH {}------------------'.format(
+                epoch_number + 1))
+
+            self.model.train(True)
+            avg_loss = self.train_one_epoch()
+
+            self.model.train(False)
+
+            n = len(self.validation_loader.dataset)
+            n_batches = len(self.validation_loader)
+            
+
+            for i, vdata in enumerate(self.validation_loader):
+
+                x_val_batch, y_val_batch = vdata
+                
+                y_val_preds = self.model(x_val_batch)
+                
+                if self.bnn:
+                    y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
+                    total_loss_v = self.end_loss_bnn(y_val_preds, y_val_batch)
+
+                else:
+                    total_loss_v = self.end_loss_ann(y_val_preds, y_val_batch)
+                
+                total_running_loss_v += total_loss_v
+
+            print('PROFIT \t train {} valid {}'.format(
+                round(avg_loss, 3), round(total_running_loss_v, 3)))
+
 
             epoch_number += 1
