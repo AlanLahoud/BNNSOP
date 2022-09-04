@@ -1,5 +1,7 @@
 import torch
 
+import pdb
+
 def get_dist_pred_from_bnn(X_val, model, M):
     model.update_n_samples(n_samples=M)
     return model.forward_dist(X_val)[:,:,0]
@@ -49,8 +51,9 @@ def compute_norm_regret(X_val, y_val, model, M, sell_price, cost_price):
 
 def compute_norm_regret_from_preds(X_val, y_val, Y_pred, M, sell_price, cost_price, method_name):
 
+    #pdb.set_trace()
     if method_name=='ann':
-        z_pred = get_argmins_from_value(Y_pred[:,0])
+        z_pred = get_argmins_from_value(Y_pred[0,:])
     else:
         z_pred = get_argmins_from_dist(sell_price, cost_price, Y_pred)
 

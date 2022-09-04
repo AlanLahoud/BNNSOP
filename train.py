@@ -28,7 +28,6 @@ class TrainDecoupled():
             self.opt.zero_grad()
  
             y_preds = self.model(x_batch)
-    
 
             if self.bnn:
                 #y_preds = y_preds.mean(axis=0)
@@ -40,7 +39,6 @@ class TrainDecoupled():
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
 
             else:
-                y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 loss_data_ = self.loss_data(y_preds, y_batch)
                 loss_data_ = loss_data_.mean(axis=0) #through batch
                 kl_loss_ = torch.tensor(0)
@@ -89,13 +87,14 @@ class TrainDecoupled():
 
                 y_val_preds = self.model(x_val_batch)
                 
-                y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
-                loss_data_ = self.loss_data(y_val_preds, y_val_batch)
                 
                 if self.bnn:
+                    y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
+                    loss_data_ = self.loss_data(y_val_preds, y_val_batch)
                     loss_data_ = loss_data_.min(axis=0).values.mean() + loss_data_.min(axis=1).values.mean()
                     
                 else:
+                    loss_data_ = self.loss_data(y_val_preds, y_val_batch)
                     loss_data_ = loss_data_.mean(axis=0) #through batch
                 
                 #loss_data_ = loss_data_.mean(axis=-1) #through output dimension

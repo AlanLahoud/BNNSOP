@@ -72,7 +72,7 @@ N = 8000 # Total data size
 N_train = 5000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 300 
+EPOCHS = 100 
 noise_type = 'multimodal'
 
 # Data manipulation
