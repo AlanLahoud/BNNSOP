@@ -192,7 +192,8 @@ class TrainCombined():
             n = len(self.validation_loader.dataset)
             n_batches = len(self.validation_loader)
             
-
+            total_running_loss_v = 0.0
+            
             for i, vdata in enumerate(self.validation_loader):
 
                 x_val_batch, y_val_batch = vdata
@@ -206,10 +207,10 @@ class TrainCombined():
                 else:
                     total_loss_v = self.end_loss_ann(y_val_preds, y_val_batch)
                 
-                total_running_loss_v += total_loss_v
+                total_running_loss_v += total_loss_v.item()
 
-            print('PROFIT \t train {} valid {}'.format(
-                round(avg_loss, 3), round(total_running_loss_v, 3)))
+            print('END LOSS \t train {} valid {}'.format(
+                round(avg_loss, 3), round(total_running_loss_v/n_batches, 3)))
 
 
             epoch_number += 1
