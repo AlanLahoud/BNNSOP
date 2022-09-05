@@ -44,25 +44,18 @@ random.seed(seed_number)
 
 method_name = sys.argv[1]
 
+assert method_name in ['ann','bnn']
+
 bnn = False
+assert (len(sys.argv)==2)
+
+eps = 0
+PLV = 1.0
+
 if method_name == 'bnn':
-    assert (len(sys.argv)==3)
-    bnn = True
-    K = float(sys.argv[2])
-    PLV = 1
-    if K>10000 or K<0:
-        print('Try K between 0 and 10000')
-        quit()    
-elif method_name == 'flow':
-    assert (len(sys.argv)==2)
-elif method_name == 'ann':
-    assert (len(sys.argv)==3)
-    eps = float(sys.argv[2])
-else:
-    print('Method not implemented: Try bnn or flow')
-    quit()
+    bnn = True   
     
-model_name = method_name
+model_name = method_name + '_combined_'
 for i in range(2, len(sys.argv)):
     model_name += sys.argv[i]
 
@@ -70,10 +63,16 @@ for i in range(2, len(sys.argv)):
 # Setting parameters (change if necessary)
 N = 8000 # Total data size
 N_train = 5000 # Training data size
-N_SAMPLES = 64 # Sampling size while training
+N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
 EPOCHS = 300 
 noise_type = 'multimodal'
+
+#OP deterministic params
+sell_price=200
+#cost_price=160 #quantile 0.2
+cost_price=40 #quantile 0.8
+model_name = model_name + f'q{(sell_price-cost_price)/sell_price}'
 
 # Data manipulation
 N_valid = N - N_train
@@ -112,8 +111,6 @@ validation_loader = torch.utils.data.DataLoader(
 input_size = X.shape[1]
 output_size = y.shape[1]
 
-#X_val = validation_loader.dataset.dataset.X[validation_loader.dataset.indices]
-#y_val = validation_loader.dataset.dataset.y[validation_loader.dataset.indices]
 
 if method_name != 'flow':
 
@@ -125,7 +122,7 @@ if method_name != 'flow':
         h = StandardNet(input_size, output_size, eps).to(dev)
         K = 0
 
-    opt_h = torch.optim.Adam(h.parameters(), lr=0.00001)
+    opt_h = torch.optim.Adam(h.parameters(), lr=0.00005)
 
     # Training regression with BNN or ANN
     train_NN = TrainCombined(
@@ -134,8 +131,8 @@ if method_name != 'flow':
                     opt=opt_h,
                     training_loader=training_loader,
                     validation_loader=validation_loader,
-                    sell_price=200,
-                    cost_price=30
+                    sell_price=sell_price,
+                    cost_price=cost_price
                 )
 
     train_NN.train(EPOCHS=EPOCHS)
@@ -143,7 +140,6 @@ if method_name != 'flow':
     
     # Propagating predictions to Newsvendor Problem
     M = 1000
-    sell_price = 200
     dict_results_nr = {}
     train_NN.model.update_n_samples(n_samples=M)
     y_pred = train_NN.model.forward_dist(X_val)[:,:,0]
@@ -171,7 +167,6 @@ else:
         y_pred[:,i] = pyx.condition(X_val[i]).sample(torch.Size([M,])).squeeze()
     
     y_pred = inverse_transform(y_pred)
-    sell_price = 200
     dict_results_nr = {}
     for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
