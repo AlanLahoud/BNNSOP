@@ -44,7 +44,7 @@ random.seed(seed_number)
 
 method_name = sys.argv[1]
 
-assert method_name in ['ann','bnn']
+assert method_name in ['ann','bnn','flow']
 
 bnn = False
 assert (len(sys.argv)==2)
@@ -155,7 +155,12 @@ if method_name != 'flow':
 
 else:
     # Training regression with FLOW
-    trfl = train_normflow.TrainFlowDecoupled(steps = 5000)
+    trfl = train_normflow.TrainFlowCombined(
+        steps = 5000, 
+        lr=3e-3, 
+        sell_price=sell_price, 
+        cost_price=cost_price, 
+        n_samples=16)
     pyx = trfl.train(X, y, X_val, y_val)
     model_used = pyx
     
