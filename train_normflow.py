@@ -77,13 +77,14 @@ class TrainFlowCombined():
 
     def train(self, X, y, X_val, y_val):
         for step in range(self.steps):
-            pdb.set_trace()
+            #pdb.set_trace()
             self.optimizer.zero_grad()
             ln_p_X = self.dist_X.log_prob(X)
-            y_pred = self.dist_y_given_X.condition(X.detach()).sample(
-                torch.Size([self.n_samples, 5000])).squeeze()
+            y_preds = self.dist_y_given_X.condition(X).rsample(
+                torch.Size([self.n_samples, 5000]))#.squeeze()
             
-            loss = self.end_loss_flow(y_pred, y)
+            
+            loss = self.end_loss_flow(y_preds, y.unsqueeze(0).expand(y_preds.shape))
             #ln_p_y_given_X = y_pred.log_prob(y.detach())
             #loss = -(ln_p_X + ln_p_y_given_X).mean()
             loss.backward()
@@ -91,12 +92,14 @@ class TrainFlowCombined():
             self.dist_X.clear_cache()
             self.dist_y_given_X.clear_cache()
 
-            if step % 500 == 0:
+            if step % 200 == 0:
                 with torch.no_grad():
+                    #pdb.set_trace()
                     ln_p_Xval = self.dist_X.log_prob(X_val)
-                    y_val_pred = self.dist_y_given_X.condition(X_val.detach()).sample(
-                        torch.Size([self.n_samples,])).squeeze()
-                    loss_val = self.end_loss_flow(y_val_pred, y_val)
+                    y_val_pred = self.dist_y_given_X.condition(X_val).sample(
+                        torch.Size([self.n_samples, 3000]))#.squeeze()
+                    
+                    loss_val = self.end_loss_flow(y_val_pred, y_val.unsqueeze(0).expand(y_val_pred.shape))
                     #ln_p_yval_given_Xval = y_val_pred.log_prob(y_val.detach())
                     #loss_val = -(ln_p_Xval + ln_p_yval_given_Xval).mean()
                     print(f'step: {step}, train loss: {round(loss.item(), 5)}, val loss: {round(loss_val.item(), 5)}')

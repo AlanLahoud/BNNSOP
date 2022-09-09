@@ -70,8 +70,8 @@ noise_type = 'multimodal'
 
 #OP deterministic params
 sell_price=200
-#cost_price=160 #quantile 0.2
-cost_price=40 #quantile 0.8
+cost_price=160 #quantile 0.2
+#cost_price=40 #quantile 0.8
 model_name = model_name + f'q{(sell_price-cost_price)/sell_price}'
 
 # Data manipulation
