@@ -19,9 +19,9 @@ def get_params(n_items, seed_number):
         qs = 20 + np.random.randint(-5, 5)  # Shortage cost fpr each item
         qw = 15 + np.random.randint(-5, 5) # Excess cost for each item
         
-        c = 30 + np.random.randint(-5, 5) # Fixed cost for each item
-        cs = 240 + np.random.randint(-50, 50)  # Shortage cost fpr each item
-        cw = 100 + np.random.randint(-20, 20) # Excess cost for each item
+        c = 50 + np.random.randint(-20, 20) # Fixed cost for each item
+        cs = 1000 + np.random.randint(-200, 200)  # Shortage cost fpr each item
+        cw = 150 + np.random.randint(-30, 30) # Excess cost for each item
         
         # constraints of price and size for each item
         pr = int(100000/(c + cs + cw) + np.random.randint(-50, 50))
@@ -32,9 +32,9 @@ def get_params(n_items, seed_number):
     df_parameters = pd.DataFrame(data=params_list, columns = params_name)
 
     # Generate a bound for inequalities of Budget and Size
-    avg_sales = 7 
-    B = 400*avg_sales*n_items*np.random.uniform(0.3, 0.6)
-    S = 400*avg_sales*n_items*np.random.uniform(0.3, 0.6)
+    avg_sales = 10 
+    B = 1000*avg_sales*n_items*np.random.uniform(0.4, 0.6)
+    S = 1000*avg_sales*n_items*np.random.uniform(0.4, 0.6)
     
     
     # Building the parameters as numpy and torch dictionary
