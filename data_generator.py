@@ -75,56 +75,50 @@ def data_4to1(N, noise_level=1):
     return X, y
 
 
-def data_4to4(N, noise_level=1):
+def data_4to8(N, noise_level=1):
 
-    x1 = np.random.normal(0, 1, size=N)
-    x2 = np.random.poisson(lam=1.0, size=N)
-    x3 = np.random.gamma(3, scale=1.0, size=N)
-    x4 = np.random.uniform(low=-1.0, high=4.0, size=N)
+    x1 = np.random.normal(0, 1, N)
+    x2 = np.random.normal(0, 1, N)
+    x3 = np.random.normal(0, 1, N)
+    x4 = np.random.normal(0, 1, N)
+
+    y1_perfect = np.maximum(5 + np.abs(6*x1)*np.sin(x2) + 4*np.sin(6*x3), 0)
+    y2_perfect = np.maximum(3 + np.abs(10*x2)*np.sin(x3)**2 + 2*np.sin(6*x1), 0)
+    y3_perfect = np.maximum(3 + np.abs(4*x3)**0.5*np.sin(x2) + 4*np.sin(2*x4), 0)
+    y4_perfect = np.maximum(7 + np.abs(6*x4)*np.sin(x1) + 2*np.sin(6*x2)**2, 0)
     
-    X = np.vstack((x1, x2, x3, x4)).T
-    
-    y1_perfect = np.abs((
-        3*x1*np.sin(x1*x2) 
-        + x4*np.abs(x1*x3) 
-        + 5*np.log(0.1+np.abs(x4)) 
-        + 8*np.sin(3*x2*x4)
-    ))
-    
-    y2_perfect = np.abs((
-        3*x2*np.sin(x1*x3) 
-        + x4*np.abs(x2) 
-        + 5*np.log(0.1+np.abs(x4)) 
-        + 8*np.sin(3*x2*x3)
-    ))
-    
-    y3_perfect = np.abs((
-        5*x3*np.sin(x4) 
-        + x4*np.abs(x3) 
-        + 1*np.log(0.1+np.abs(x2)) 
-        + 2*np.sin(x1)
-    ))
-    
-    y4_perfect = np.abs((
-        2*x4*np.sin(x4) 
-        + x2*np.abs(x1) 
-        + 1*np.log(0.1+np.abs(x2)) 
-        + 12*np.sin(x4)
-    ))
-    
-    # Noise
-    def random_noise_():
-        return (
-            np.random.normal(0, noise_level, N)*np.abs(x1*x2)
-            + np.random.normal(0, noise_level, N)*x4*np.abs(x3)
+    y5_perfect = y1_perfect + y2_perfect
+    y6_perfect = y2_perfect + y3_perfect
+    y7_perfect = y3_perfect + y4_perfect
+    y8_perfect = y4_perfect + y1_perfect
+
+    n_gaussian_1 = np.random.normal(1, noise_level, N)
+    n_gaussian_2 = np.random.normal(1, 0.5*noise_level, N)
+    n_multimodal_1 = np.hstack(
+            (np.random.normal(0.5, noise_level, N//4), 
+             np.random.normal(2, noise_level, N-N//4))
         )
+    n_multimodal_2 = np.hstack(
+            (np.random.normal(0.5, 0.5*noise_level, N//4), 
+             np.random.normal(2, noise_level, N-N//4))
+        )
+
+    n_poisson_1 = np.random.poisson(lam=0.1*noise_level, size=N)
+    n_poisson_2 = np.random.poisson(lam=0.2*noise_level, size=N)
+
+
+    y1 = np.maximum(y1_perfect + n_gaussian_1, 0)
+    y2 = np.maximum(y2_perfect + n_gaussian_2, 0)
+    y3 = np.maximum(y3_perfect + n_multimodal_2, 0)
+    y4 = np.maximum(y4_perfect + n_gaussian_1, 0)
     
-    y1 = np.clip(y1_perfect + random_noise_(), a_min=0, a_max=None)
-    y2 = y2_perfect + random_noise_()
-    y3 = y3_perfect + random_noise_()
-    y4 = y4_perfect + random_noise_()
-    
-    Y = np.vstack((y1, y2, y3, y4)).T
+    y5 = np.maximum(y5_perfect + n_multimodal_1, 0)
+    y6 = np.maximum(y6_perfect + n_gaussian_1, 0)
+    y7 = np.maximum(y7_perfect + n_gaussian_2, 0)
+    y8 = np.maximum(y8_perfect + n_gaussian_2, 0)
+
+    X = np.vstack((x1, x2, x3, x4)).T.round(3)
+    Y = np.vstack((y1, y2, y3, y4, y5, y6, y7, y8)).T.round(3)
     
     
     return X, Y

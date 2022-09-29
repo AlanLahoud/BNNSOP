@@ -2,6 +2,8 @@ import sys
 import torch
 import classical_newsvendor_utils as cnu
 
+#import pdb
+
 class TrainDecoupled():
     
     def __init__(self, bnn, model, opt, loss_data, K, training_loader, validation_loader):
@@ -32,12 +34,13 @@ class TrainDecoupled():
             y_preds = self.model(x_batch)
 
             if self.bnn:
+                #pdb.set_trace()
                 #y_preds = y_preds.mean(axis=0)
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 loss_data_ = self.loss_data(y_preds, y_batch)
-                loss_data_ = loss_data_.min(axis=0).values.mean() + loss_data_.min(axis=1).values.mean()
-                #loss_data_ = loss_data_.mean(axis=1) #through batch
-                #loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
+                #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
+                loss_data_ = loss_data_.mean(axis=1) #through batch
+                loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
 
             else:
@@ -89,20 +92,22 @@ class TrainDecoupled():
 
                 y_val_preds = self.model(x_val_batch)
                 
-                
                 if self.bnn:
                     y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
                     loss_data_ = self.loss_data(y_val_preds, y_val_batch)
-                    loss_data_ = loss_data_.min(axis=0).values.mean() + loss_data_.min(axis=1).values.mean()
+                    loss_data_ = loss_data_.mean(axis=1) #through batch
+                    loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
+                    #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
                     
                 else:
                     loss_data_ = self.loss_data(y_val_preds, y_val_batch)
-                    loss_data_ = loss_data_.mean(axis=0) #through batch
+                    loss_data_ = loss_data_.mean() #through batch
                 
-                #loss_data_ = loss_data_.mean(axis=-1) #through output dimension
+                loss_data_ = loss_data_.mean(axis=-1) #through output dimension
 
                 loss_data_running_loss_v += loss_data_
 
+                
             avg_vloss_data = (loss_data_running_loss_v/n_batches).item()
             avg_vklloss = (kl_loss_).item()
 

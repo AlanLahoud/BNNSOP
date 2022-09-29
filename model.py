@@ -82,7 +82,7 @@ class VariationalNet(nn.Module):
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         # Hidden layer sizes, if you add a layer you have to modify the code below
-        hl_sizes = [32, 16] 
+        hl_sizes = [64, 32] 
         self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples)
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples)
