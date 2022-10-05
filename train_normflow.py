@@ -21,7 +21,7 @@ import pdb
 
 class TrainFlowDecoupled():
     
-    def __init__(self, steps, input_size, output_size, lr = 3e-3):
+    def __init__(self, steps, input_size, output_size, lr = 2e-3):
         X_transform = T.spline(input_size)
         y_transform = T.conditional_spline(output_size, context_dim=input_size)
             
@@ -36,7 +36,6 @@ class TrainFlowDecoupled():
         
 
     def train(self, X, y, X_val, y_val):
-        #pdb.set_trace()
         for step in range(self.steps):
             self.optimizer.zero_grad()
             ln_p_X = self.dist_X.log_prob(X)
@@ -61,24 +60,21 @@ class TrainFlowDecoupled():
     
 class TrainFlowCombined():
     
-    def __init__(self, steps, lr, sell_price, cost_price, n_samples):
-        X_transform = T.spline(1)
-        y_transform = T.conditional_spline(1, context_dim=1)
+    def __init__(self, steps, input_size, output_size, lr, OP, n_samples):
+        X_transform = T.spline(input_size)
+        y_transform = T.conditional_spline(output_size, context_dim=input_size)
             
-        dist_base = dist.Normal(torch.zeros(1), torch.ones(1))
+        dist_base = dist.Normal(torch.zeros(input_size), torch.ones(input_size))
+        dist_base_out = dist.Normal(torch.zeros(output_size), torch.ones(output_size))
+        
         self.dist_X = dist.TransformedDistribution(dist_base, [X_transform])
-        self.dist_y_given_X = dist.ConditionalTransformedDistribution(dist_base, [y_transform])
+        self.dist_y_given_X = dist.ConditionalTransformedDistribution(dist_base_out, [y_transform])
         self.steps = steps
         modules = torch.nn.ModuleList([X_transform, y_transform])
         self.optimizer = torch.optim.Adam(modules.parameters(), lr)
-        self.sell_price = sell_price
-        self.cost_price = cost_price
+        self.end_loss_flow = OP.end_loss_dist
         self.n_samples = n_samples
         
-    def end_loss_flow(self, y_pred_dist, y_true):
-        z_pred = cnu.get_argmins_from_dist(self.sell_price, self.cost_price, y_pred_dist)
-        end_loss = -cnu.profit_sum(z_pred, y_true, self.sell_price, self.cost_price)
-        return end_loss
 
     def train(self, X, y, X_val, y_val):
         for step in range(self.steps):
@@ -87,11 +83,9 @@ class TrainFlowCombined():
             ln_p_X = self.dist_X.log_prob(X)
             y_preds = self.dist_y_given_X.condition(X).rsample(
                 torch.Size([self.n_samples, 5000]))#.squeeze()
-            
-            
+ 
             loss = self.end_loss_flow(y_preds, y.unsqueeze(0).expand(y_preds.shape))
-            #ln_p_y_given_X = y_pred.log_prob(y.detach())
-            #loss = -(ln_p_X + ln_p_y_given_X).mean()
+
             loss.backward()
             self.optimizer.step()
             self.dist_X.clear_cache()
@@ -105,8 +99,7 @@ class TrainFlowCombined():
                         torch.Size([self.n_samples, 3000]))#.squeeze()
                     
                     loss_val = self.end_loss_flow(y_val_pred, y_val.unsqueeze(0).expand(y_val_pred.shape))
-                    #ln_p_yval_given_Xval = y_val_pred.log_prob(y_val.detach())
-                    #loss_val = -(ln_p_Xval + ln_p_yval_given_Xval).mean()
+     
                     print(f'step: {step}, train loss: {round(loss.item(), 5)}, val loss: {round(loss_val.item(), 5)}')
         
         return self.dist_y_given_X

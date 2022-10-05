@@ -22,7 +22,9 @@ import joblib
 import data_generator
 from model import VariationalLayer, VariationalNet, StandardNet, VariationalNet2
 from train import TrainCombined
-import classical_newsvendor_utils as cnu
+
+from classical_newsvendor_utils import ClassicalNewsvendor
+
 import train_normflow
 
 
@@ -65,8 +67,8 @@ N = 8000 # Total data size
 N_train = 5000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 300 
-noise_type = 'multimodal'
+EPOCHS = 150 
+noise_type = 'poisson'
 
 #OP deterministic params
 sell_price=200
@@ -112,6 +114,9 @@ input_size = X.shape[1]
 output_size = y.shape[1]
 
 
+cn = ClassicalNewsvendor(sell_price, cost_price)
+
+
 if method_name != 'flow':
 
     # Model setting
@@ -131,8 +136,7 @@ if method_name != 'flow':
                     opt=opt_h,
                     training_loader=training_loader,
                     validation_loader=validation_loader,
-                    sell_price=sell_price,
-                    cost_price=cost_price
+                    OP=cn
                 )
 
     train_NN.train(EPOCHS=EPOCHS)
@@ -147,19 +151,21 @@ if method_name != 'flow':
     
     for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
+        cn2 = ClassicalNewsvendor(sell_price, cost_price)
         dict_results_nr[str(quantile)] = round(
-            cnu.compute_norm_regret_from_preds(
-            X_val, y_val_original, y_pred, M, sell_price, cost_price, method_name).item(), 
+            cn2.compute_norm_regret_from_preds(
+            X_val, y_val_original, y_pred, M, method_name).item(), 
             3)
 
 
 else:
     # Training regression with FLOW
     trfl = train_normflow.TrainFlowCombined(
-        steps = 5000, 
+        steps = 5000,
+        input_size=1, 
+        output_size=1,
         lr=3e-3, 
-        sell_price=sell_price, 
-        cost_price=cost_price, 
+        OP=cn,
         n_samples=16)
     pyx = trfl.train(X, y, X_val, y_val)
     model_used = pyx
@@ -175,9 +181,10 @@ else:
     dict_results_nr = {}
     for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
+        cn2 = ClassicalNewsvendor(sell_price, cost_price)
         dict_results_nr[str(quantile)] = round(
-            cnu.compute_norm_regret_from_preds(
-            X_val, y_val_original, y_pred, M, sell_price, cost_price, method_name).item(), 
+            cn2.compute_norm_regret_from_preds(
+            X_val, y_val_original, y_pred, M, method_name).item(), 
             3)             
 
 torch.save(model_used, f'./models/{model_name}_{noise_type}.pkl')

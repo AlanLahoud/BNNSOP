@@ -2,7 +2,7 @@ import sys
 import torch
 import classical_newsvendor_utils as cnu
 
-#import pdb
+import pdb
 
 class TrainDecoupled():
     
@@ -38,6 +38,7 @@ class TrainDecoupled():
                 #y_preds = y_preds.mean(axis=0)
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 loss_data_ = self.loss_data(y_preds, y_batch)
+
                 #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
                 loss_data_ = loss_data_.mean(axis=1) #through batch
                 loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
@@ -124,30 +125,22 @@ class TrainDecoupled():
             
             
             
+
             
-            
+
             
 class TrainCombined():
     
-    def __init__(self, bnn, model, opt, training_loader, validation_loader, sell_price, cost_price):
+    def __init__(self, bnn, model, opt, training_loader, validation_loader, OP):
         self.model = model
         self.opt = opt
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.bnn = bnn
-        self.sell_price = sell_price
-        self.cost_price = cost_price
+        self.end_loss = OP.end_loss
+        self.end_loss_dist = OP.end_loss_dist
        
-    
-    def end_loss_ann(self, y_pred, y_true):
-        z_pred = cnu.get_argmins_from_value(y_pred)
-        end_loss = -cnu.profit_sum(z_pred, y_true, self.sell_price, self.cost_price)
-        return end_loss
-    
-    def end_loss_bnn(self, y_pred_dist, y_true):
-        z_pred = cnu.get_argmins_from_dist(self.sell_price, self.cost_price, y_pred_dist)
-        end_loss = -cnu.profit_sum(z_pred, y_true, self.sell_price, self.cost_price)
-        return end_loss
+
         
     def train_one_epoch(self):
 
@@ -165,10 +158,10 @@ class TrainCombined():
 
             if self.bnn:
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
-                total_loss = self.end_loss_bnn(y_preds, y_batch)
+                total_loss = self.end_loss_dist(y_preds, y_batch)
 
             else:
-                total_loss = self.end_loss_ann(y_preds, y_batch)
+                total_loss = self.end_loss(y_preds, y_batch)
                 
 
             total_loss.backward()
@@ -207,10 +200,10 @@ class TrainCombined():
                 
                 if self.bnn:
                     y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
-                    total_loss_v = self.end_loss_bnn(y_val_preds, y_val_batch)
+                    total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
 
                 else:
-                    total_loss_v = self.end_loss_ann(y_val_preds, y_val_batch)
+                    total_loss_v = self.end_loss(y_val_preds, y_val_batch)
                 
                 total_running_loss_v += total_loss_v.item()
 

@@ -32,9 +32,9 @@ def get_params(n_items, seed_number):
     df_parameters = pd.DataFrame(data=params_list, columns = params_name)
 
     # Generate a bound for inequalities of Budget and Size
-    avg_sales = 10 
-    B = 1000*avg_sales*n_items*np.random.uniform(0.4, 0.6)
-    S = 1000*avg_sales*n_items*np.random.uniform(0.4, 0.6)
+    avg_sales = 4 
+    B = 200*avg_sales*n_items*np.random.uniform(0.5, 0.6)
+    S = 200*avg_sales*n_items*np.random.uniform(0.5, 0.6)
     
     
     # Building the parameters as numpy and torch dictionary

@@ -22,7 +22,7 @@ import joblib
 import data_generator
 from model import VariationalLayer, VariationalNet, StandardNet, VariationalNet2
 from train import TrainDecoupled
-import classical_newsvendor_utils as cnu
+from classical_newsvendor_utils import ClassicalNewsvendor
 import train_normflow
 
 
@@ -49,7 +49,7 @@ if method_name == 'bnn':
     assert (len(sys.argv)==3)
     bnn = True
     K = float(sys.argv[2])
-    PLV = 1
+    PLV = 5
     if K>10000 or K<0:
         print('Try K between 0 and 10000')
         quit()    
@@ -72,8 +72,8 @@ N = 8000 # Total data size
 N_train = 5000 # Training data size
 N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 300 
-noise_type = 'multimodal'
+EPOCHS = 10 
+noise_type = 'poisson'
 
 # Data manipulation
 N_valid = N - N_train
@@ -112,9 +112,6 @@ validation_loader = torch.utils.data.DataLoader(
 input_size = X.shape[1]
 output_size = y.shape[1]
 
-#X_val = validation_loader.dataset.dataset.X[validation_loader.dataset.indices]
-#y_val = validation_loader.dataset.dataset.y[validation_loader.dataset.indices]
-
 if method_name != 'flow':
 
     # Model setting
@@ -152,15 +149,16 @@ if method_name != 'flow':
     
     for cost_price in (np.arange(0.1,1,0.1)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
+        cn2 = ClassicalNewsvendor(sell_price, cost_price)
         dict_results_nr[str(quantile)] = round(
-            cnu.compute_norm_regret_from_preds(
-            X_val, y_val_original, y_pred, M, sell_price, cost_price, method_name).item(), 
+            cn2.compute_norm_regret_from_preds(
+            X_val, y_val_original, y_pred, M, method_name).item(), 
             3)
 
 
 else:
     # Training regression with FLOW
-    trfl = train_normflow.TrainFlowDecoupled(steps = 5000)
+    trfl = train_normflow.TrainFlowDecoupled(steps = 5000, input_size=1, output_size=1)
     pyx = trfl.train(X, y, X_val, y_val)
     model_used = pyx
     
@@ -174,11 +172,12 @@ else:
     y_pred = inverse_transform(y_pred)
     sell_price = 200
     dict_results_nr = {}
-    for cost_price in (np.arange(0.1,1,0.1)*sell_price):
+    for cost_price in (np.arange(0.1,1,0.05)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
+        cn2 = ClassicalNewsvendor(sell_price, cost_price)
         dict_results_nr[str(quantile)] = round(
-            cnu.compute_norm_regret_from_preds(
-            X_val, y_val_original, y_pred, M, sell_price, cost_price, method_name).item(), 
+            cn2.compute_norm_regret_from_preds(
+            X_val, y_val_original, y_pred, M, method_name).item(), 
             3)             
 
 torch.save(model_used, f'./models/{model_name}_{noise_type}.pkl')

@@ -19,22 +19,26 @@ class ArtificialDataset(torch.utils.data.Dataset):
         return X_i, y_i
 
 
-def data_1to1(N, xl=-1, xh=1, noise_level=1, noise_type='gaussian'):
-    X = np.arange(xl, xh, (xh-xl)/N)
+def data_1to1(N, noise_level=1, noise_type='gaussian'):
+    X = np.random.normal(0, 1, N)
     
     y_perfect = np.abs(np.abs(6*X)*np.sin(X) + 4*np.sin(6*X))
 
     # Noise
     if noise_type == 'gaussian':
         n = np.random.normal(0, noise_level, N)*np.abs(X**2)
-        y = np.abs(y_perfect + n)
+        y = y_perfect + n*(X+1)
     elif noise_type == 'multimodal':
         n = np.hstack(
             (np.random.normal(6, noise_level, N//4), 
              np.random.normal(2, noise_level, N-N//4))
         )
         np.random.shuffle(n)
-        y = y_perfect + n*(X+1)
+        y = y_perfect + n*(X+1)     
+    elif noise_type == 'poisson':
+        n = np.random.poisson(lam=5*noise_level, size=N)    
+        np.random.shuffle(n)
+        y = y_perfect + n*(X+1)     
     else:
         print('noise_type not considered')
         exit()
@@ -75,8 +79,9 @@ def data_4to1(N, noise_level=1):
     return X, y
 
 
-def data_4to8(N, noise_level=1):
+def data_4to8(N, noise_level=1, seed_number=42):
 
+    np.random.seed(seed_number)
     x1 = np.random.normal(0, 1, N)
     x2 = np.random.normal(0, 1, N)
     x3 = np.random.normal(0, 1, N)
@@ -110,12 +115,12 @@ def data_4to8(N, noise_level=1):
     y1 = np.maximum(y1_perfect + n_gaussian_1, 0)
     y2 = np.maximum(y2_perfect + n_gaussian_2, 0)
     y3 = np.maximum(y3_perfect + n_multimodal_2, 0)
-    y4 = np.maximum(y4_perfect + n_gaussian_1, 0)
+    y4 = np.maximum(y4_perfect + n_poisson_1, 0)
     
     y5 = np.maximum(y5_perfect + n_multimodal_1, 0)
     y6 = np.maximum(y6_perfect + n_gaussian_1, 0)
     y7 = np.maximum(y7_perfect + n_gaussian_2, 0)
-    y8 = np.maximum(y8_perfect + n_gaussian_2, 0)
+    y8 = np.maximum(y8_perfect + n_poisson_2, 0)
 
     X = np.vstack((x1, x2, x3, x4)).T.round(3)
     Y = np.vstack((y1, y2, y3, y4, y5, y6, y7, y8)).T.round(3)
