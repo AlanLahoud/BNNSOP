@@ -135,7 +135,7 @@ class TrainDecoupled():
             
 class TrainCombined():
     
-    def __init__(self, bnn, model, opt, training_loader, validation_loader, OP):
+    def __init__(self, bnn, model, opt, training_loader, validation_loader, OP, dev):
         self.model = model
         self.opt = opt
         self.training_loader = training_loader
