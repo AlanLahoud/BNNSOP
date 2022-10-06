@@ -1,8 +1,6 @@
 import sys
 import torch
 import math
-import classical_newsvendor_utils as cnu
-
 
 class TrainDecoupled():
     
@@ -145,8 +143,7 @@ class TrainCombined():
         self.end_loss_dist = OP.end_loss_dist
         self.dev = dev
        
-
-        
+   
     def train_one_epoch(self):
 
         n = len(self.training_loader.dataset)

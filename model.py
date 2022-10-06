@@ -6,42 +6,46 @@ class VariationalLayer(nn.Module):
     def __init__(self, 
                  input_size, output_size,
                  prior_mu, prior_rho,
-                 n_samples
+                 n_samples, dev
                 ):
         super().__init__()
+        
+        self.dev = dev
         
         # Bias weight
         input_size = input_size + 1
         
         # Defining Prior distribution (Gaussian)
-        self.prior_mu = torch.tensor(prior_mu)
-        self.prior_rho = torch.tensor(prior_rho)
+        self.prior_mu = torch.tensor(prior_mu).to(dev)
+        self.prior_rho = torch.tensor(prior_rho).to(dev)
         
         # Defining Variational class (Gaussian class)
         self.theta_mu = nn.Parameter(
-            torch.Tensor(input_size, output_size).uniform_(
+            torch.Tensor(input_size, output_size).to(dev).uniform_(
                 -0.5, 0.5)).float()
         self.theta_rho = nn.Parameter(
-            torch.Tensor(input_size, output_size).uniform_(
+            torch.Tensor(input_size, output_size).to(dev).uniform_(
                 -4,-3)).float()
+        
+        
         
         # Defining some constants
         self.logsqrttwopi = torch.log(
-            torch.sqrt(2*torch.tensor(math.pi)))
-        self.K = torch.tensor(1)
+            torch.sqrt(2*torch.tensor(math.pi))).to(dev)
+        self.K = torch.tensor(1).to(dev)
         
         # Defining number of samples for forward
         self.n_samples = n_samples
 
     
-    def rho_to_sigma(self, theta_rho):
-        return torch.log(1 + torch.exp(theta_rho))
+    def rho_to_sigma(self):
+        return torch.log(1 + torch.exp(self.theta_rho))
 
-    def sample_weight(self, theta_mu, theta_rho):
-        w = (theta_mu 
-        + self.rho_to_sigma(theta_rho)*torch.randn(
-            (self.n_samples, theta_mu.shape[0], theta_mu.shape[1])
-        ))
+    def sample_weight(self):
+        w = (self.theta_mu 
+        + self.rho_to_sigma()*torch.randn(
+            (self.n_samples, self.theta_mu.shape[0], self.theta_mu.shape[1])
+        ).to(self.dev))
         return w
 
     def log_prob_gaussian(self, x, mu, rho):
@@ -69,26 +73,26 @@ class VariationalLayer(nn.Module):
         return KL
     
     def forward(self, x_layer):
-        theta_mu = self.theta_mu
-        theta_rho = self.theta_rho
-        w = self.sample_weight(theta_mu, theta_rho)    
+        #theta_mu = self.theta_mu
+        #theta_rho = self.theta_rho
+        w = self.sample_weight()    
         x_next_layer = torch.bmm(x_layer, w[:, :-1, :]) + w[:,-1,:].unsqueeze(1)
         return x_next_layer
     
     
 class VariationalNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv):
+    def __init__(self, n_samples, input_size, output_size, plv,dev):
         super().__init__()
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         # Hidden layer sizes, if you add a layer you have to modify the code below
         hl_sizes = [64, 32] 
-        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples)
-        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples)
-        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples)
-        self.linear4 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples)
-        self.linear5 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples)
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev)
+        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev)
+        self.linear4 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev)
+        self.linear5 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1] 
@@ -133,7 +137,7 @@ class VariationalNet(nn.Module):
         
         
 class VariationalNet2(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv):
+    def __init__(self, n_samples, input_size, output_size, plv, dev):
         super().__init__()
         self.output_type_dist = True
         self.n_samples = n_samples
@@ -141,14 +145,14 @@ class VariationalNet2(nn.Module):
         self.act2 = nn.Tanh()
         # Hidden layer sizes, if you add a layer you have to modify the code below
         hl_sizes = [64, 32] 
-        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples)
-        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[0], 0, plv, n_samples)
-        self.linear3 = VariationalLayer(hl_sizes[0], hl_sizes[0], 0, plv, n_samples)
-        self.linear4 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples)
-        self.linear5A = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples)
-        self.linear5B = VariationalLayer(hl_sizes[1], output_size, 0, 2*plv, n_samples)
-        self.linear5C = VariationalLayer(hl_sizes[1], output_size, 0, 4*plv, n_samples)
-        self.linear5D = VariationalLayer(hl_sizes[1], output_size, 0, 8*plv, n_samples)
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[0], 0, plv, n_samples, dev)
+        self.linear3 = VariationalLayer(hl_sizes[0], hl_sizes[0], 0, plv, n_samples, dev)
+        self.linear4 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev)
+        self.linear5A = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
+        self.linear5B = VariationalLayer(hl_sizes[1], output_size, 0, 2*plv, n_samples, dev)
+        self.linear5C = VariationalLayer(hl_sizes[1], output_size, 0, 4*plv, n_samples, dev)
+        self.linear5D = VariationalLayer(hl_sizes[1], output_size, 0, 8*plv, n_samples, dev)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + 2*(hl_sizes[0]+1)*hl_sizes[1]
@@ -202,8 +206,7 @@ class VariationalNet2(nn.Module):
         self.linear5B.n_samples = n_samples
         self.linear5C.n_samples = n_samples
         self.linear5D.n_samples = n_samples
-        
-import pdb    
+          
 class StandardNet(nn.Module):
     def __init__(self, input_size, output_size, eps):
         super().__init__()
