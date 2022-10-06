@@ -6,7 +6,7 @@ import torch
 ## OP deterministic parameters ##################################################
 #################################################################################
 
-def get_params(n_items, seed_number):
+def get_params(n_items, seed_number, dev):
     
     np.random.seed(seed_number)
     
@@ -53,13 +53,14 @@ def get_params(n_items, seed_number):
     
     params['si'] = df_parameters['si'].tolist()
     params['S'] = [S]
+    
+    params_np = params.copy()
 
     for key in params.keys():
-        params[key] = torch.Tensor(params[key])
+        params[key] = torch.Tensor(params[key]).to(dev)
         params_t = params.copy()
         
-    for key in params.keys():
-        params[key] = np.array(params[key])
-        params_np = params.copy()
+    for key in params_np.keys():
+        params_np[key] = np.array(params_np[key])
 
     return params_t, params_np
