@@ -1,5 +1,6 @@
 import sys
 import torch
+import math
 import classical_newsvendor_utils as cnu
 
 import pdb
@@ -16,7 +17,7 @@ class TrainDecoupled():
         self.bnn = bnn
         
         self.logsqrttwopi = torch.log(
-            torch.sqrt(2*torch.tensor(torch.pi)))
+            torch.sqrt(2*torch.tensor(math.pi)))
       
     
     def train_one_epoch(self):

@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 
@@ -26,7 +27,7 @@ class VariationalLayer(nn.Module):
         
         # Defining some constants
         self.logsqrttwopi = torch.log(
-            torch.sqrt(2*torch.tensor(torch.pi)))
+            torch.sqrt(2*torch.tensor(math.pi)))
         self.K = torch.tensor(1)
         
         # Defining number of samples for forward
