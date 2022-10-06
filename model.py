@@ -203,7 +203,7 @@ class VariationalNet2(nn.Module):
         self.linear5C.n_samples = n_samples
         self.linear5D.n_samples = n_samples
         
-    
+import pdb    
 class StandardNet(nn.Module):
     def __init__(self, input_size, output_size, eps):
         super().__init__()

@@ -3,11 +3,10 @@ import torch
 import math
 import classical_newsvendor_utils as cnu
 
-import pdb
 
 class TrainDecoupled():
     
-    def __init__(self, bnn, model, opt, loss_data, K, training_loader, validation_loader):
+    def __init__(self, bnn, model, opt, loss_data, K, training_loader, validation_loader, dev):
         self.model = model
         self.opt = opt
         self.loss_data = loss_data
@@ -15,6 +14,7 @@ class TrainDecoupled():
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.bnn = bnn
+        self.dev = dev
         
         self.logsqrttwopi = torch.log(
             torch.sqrt(2*torch.tensor(math.pi)))
@@ -30,6 +30,9 @@ class TrainDecoupled():
         for i, data in enumerate(self.training_loader):
 
             x_batch, y_batch = data
+            x_batch = x_batch.to(self.dev)
+            y_batch = y_batch.to(self.dev)
+            
             self.opt.zero_grad()
  
             y_preds = self.model(x_batch)
@@ -91,6 +94,9 @@ class TrainDecoupled():
             for i, vdata in enumerate(self.validation_loader):
 
                 x_val_batch, y_val_batch = vdata
+                
+                x_val_batch = x_val_batch.to(self.dev)
+                y_val_batch = y_val_batch.to(self.dev)
 
                 y_val_preds = self.model(x_val_batch)
                 
@@ -125,9 +131,6 @@ class TrainDecoupled():
             epoch_number += 1
             
             
-            
-
-            
 
             
 class TrainCombined():
@@ -140,6 +143,7 @@ class TrainCombined():
         self.bnn = bnn
         self.end_loss = OP.end_loss
         self.end_loss_dist = OP.end_loss_dist
+        self.dev = dev
        
 
         
@@ -149,10 +153,14 @@ class TrainCombined():
         n_batches = len(self.training_loader)
         
         end_total_loss = 0
+
         
         for i, data in enumerate(self.training_loader):
 
             x_batch, y_batch = data
+            x_batch = x_batch.to(self.dev)
+            y_batch = y_batch.to(self.dev)
+            
             self.opt.zero_grad()
  
             y_preds = self.model(x_batch)
@@ -196,6 +204,9 @@ class TrainCombined():
             for i, vdata in enumerate(self.validation_loader):
 
                 x_val_batch, y_val_batch = vdata
+                
+                x_val_batch = x_val_batch.to(self.dev)
+                y_val_batch = y_val_batch.to(self.dev)
                 
                 y_val_preds = self.model(x_val_batch)
                 

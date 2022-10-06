@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from sklearn import preprocessing
-
+import pdb
 
 class ArtificialDataset(torch.utils.data.Dataset):
     def __init__(self, X, y):
@@ -15,7 +15,6 @@ class ArtificialDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         X_i = self.X[idx]
         y_i = self.y[idx]
-
         return X_i, y_i
 
 
@@ -124,6 +123,5 @@ def data_4to8(N, noise_level=1, seed_number=42):
 
     X = np.vstack((x1, x2, x3, x4)).T.round(3)
     Y = np.vstack((y1, y2, y3, y4, y5, y6, y7, y8)).T.round(3)
-    
     
     return X, Y
