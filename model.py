@@ -25,7 +25,7 @@ class VariationalLayer(nn.Module):
                 -0.5, 0.5)).float()
         self.theta_rho = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
-                -4,-3)).float()
+                -5,-4)).float()
         
         
         
@@ -38,12 +38,12 @@ class VariationalLayer(nn.Module):
         self.n_samples = n_samples
 
     
-    def rho_to_sigma(self):
-        return torch.log(1 + torch.exp(self.theta_rho))
+    def rho_to_sigma(self, rho):
+        return torch.log(1 + torch.exp(rho))
 
     def sample_weight(self):
         w = (self.theta_mu 
-        + self.rho_to_sigma()*torch.randn(
+        + self.rho_to_sigma(self.theta_rho)*torch.randn(
             (self.n_samples, self.theta_mu.shape[0], self.theta_mu.shape[1])
         ).to(self.dev))
         return w
@@ -59,15 +59,15 @@ class VariationalLayer(nn.Module):
         return self.log_prob_gaussian(
             w, self.prior_mu, self.prior_rho)
         
-    def variational(self, w, theta_mu, theta_rho):
+    def variational(self, w):
         return self.log_prob_gaussian(
-            w, theta_mu, theta_rho) 
+            w, self.theta_mu, self.theta_rho) 
     
     def kl_divergence_layer(self):
-        theta_mu = self.theta_mu
-        theta_rho = self.theta_rho
-        w = self.sample_weight(theta_mu, theta_rho)
-        Q = self.variational(w, theta_mu, theta_rho)
+        #theta_mu = self.theta_mu
+        #theta_rho = self.theta_rho
+        w = self.sample_weight()
+        Q = self.variational(w)
         P = self.prior(w)
         KL = Q - P
         return KL
