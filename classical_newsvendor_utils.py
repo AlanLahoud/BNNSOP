@@ -2,16 +2,16 @@ import torch
 
 class ClassicalNewsvendor():
     
-    def __init__(self, sell_price, cost_price):
-        self.sell_price = sell_price
-        self.cost_price = cost_price
+    def __init__(self, cost_shortage, cost_excess):
+        self.cs = cost_shortage
+        self.ce = cost_excess
         
     def get_dist_pred_from_bnn(self, X_val, model, M):
         model.update_n_samples(n_samples=M)
         return model.forward_dist(X_val)[:,:,0]
       
     def get_argmins_from_dist(self, dist):
-        quantile_cut = (self.sell_price - self.cost_price)/self.sell_price
+        quantile_cut = self.cs/(self.cs + self.ce)
         argmin_from_dist = torch.quantile(
                             dist, 
                             quantile_cut, 
@@ -22,16 +22,16 @@ class ClassicalNewsvendor():
         argmin_from_value = demand
         return argmin_from_value
 
-    def profit_per_instance(self, order, demand_true):
-        return self.sell_price*torch.minimum(order, demand_true) - self.cost_price*order
+    def cost_per_instance(self, order, demand_true):
+        return self.cs*torch.maximum(demand_true - order, torch.zeros_like(demand_true)) + self.ce*torch.maximum(order - demand_true, torch.zeros_like(demand_true))
 
-    def profit_sum(self, order, demand_true):
-        return self.profit_per_instance(order, demand_true).sum()
+    def cost_sum(self, order, demand_true):
+        return self.cost_per_instance(order, demand_true).sum()
 
-    def compute_norm_regret_from_profits(self, profit_pred, profit_best):
-        regret = profit_best - profit_pred
-        norm_regret = regret/profit_best
-        return norm_regret
+    def compute_norm_regret_from_costs(self, cost_pred, cost_best):
+        regret =  cost_pred - cost_best
+        #norm_regret = regret/cost_best
+        return regret/10000000
 
     def compute_norm_regret(self, X_val, y_val, model, M):
         if model.output_type_dist:
@@ -44,10 +44,10 @@ class ClassicalNewsvendor():
 
         z_best = self.get_argmins_from_value(y_val[:,0])
 
-        profit_pred = self.profit_sum(z_pred, y_val[:,0])
-        profit_best = self.profit_sum(z_best, y_val[:,0])
+        cost_pred = self.cost_sum(z_pred, y_val[:,0])
+        cost_best = self.cost_sum(z_best, y_val[:,0])
 
-        nr = self.compute_norm_regret_from_profits(profit_pred, profit_best)
+        nr = self.compute_norm_regret_from_costs(cost_pred, cost_best)
 
         return nr
 
@@ -56,24 +56,25 @@ class ClassicalNewsvendor():
         #if method_name=='ann':
         #    z_pred = self.get_argmins_from_value(Y_pred[0,:])
         #else:
+
         z_pred = self.get_argmins_from_dist(Y_pred)
 
         z_best = self.get_argmins_from_value(y_val[:,0])
 
-        profit_pred = self.profit_sum(z_pred, y_val[:,0])
-        profit_best = self.profit_sum(z_best, y_val[:,0])
+        cost_pred = self.cost_sum(z_pred, y_val[:,0])
+        cost_best = self.cost_sum(z_best, y_val[:,0])
 
-        nr = self.compute_norm_regret_from_profits(profit_pred, profit_best)
+        nr = self.compute_norm_regret_from_costs(cost_pred, cost_best)
 
         return nr
     
     
     def end_loss(self, y_pred, y_true):
         z_pred = self.get_argmins_from_value(y_pred)
-        end_loss = -self.profit_sum(z_pred, y_true)
+        end_loss = self.cost_sum(z_pred, y_true)
         return end_loss
     
     def end_loss_dist(self, y_pred_dist, y_true):
         z_pred = self.get_argmins_from_dist(y_pred_dist)
-        end_loss = -self.profit_sum(z_pred, y_true)
+        end_loss = self.cost_sum(z_pred, y_true)
         return end_loss

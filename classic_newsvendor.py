@@ -50,19 +50,20 @@ M_SAMPLES = 64 # Sampling size while optimizing
 
 method_name = sys.argv[1]
 noise_type = sys.argv[2]
+seed = sys.argv[3]
 
 if method_name == 'ann':
-    assert (len(sys.argv)==6)
-    aleat_bool = bool(int(sys.argv[3])) 
-    N_SAMPLES = int(sys.argv[4]) 
-    M_SAMPLES = int(sys.argv[5]) 
+    assert (len(sys.argv)==7)
+    aleat_bool = bool(int(sys.argv[4])) 
+    N_SAMPLES = int(sys.argv[5]) 
+    M_SAMPLES = int(sys.argv[6]) 
 
 elif method_name == 'bnn':
     bnn = True
-    assert (len(sys.argv)==6)  
-    aleat_bool = bool(int(sys.argv[3])) 
-    N_SAMPLES = int(sys.argv[4]) 
-    M_SAMPLES = int(sys.argv[5])     
+    assert (len(sys.argv)==7)  
+    aleat_bool = bool(int(sys.argv[4])) 
+    N_SAMPLES = int(sys.argv[5]) 
+    M_SAMPLES = int(sys.argv[6])     
     K = 5
     PLV = 3
     if K>10000 or K<0:
@@ -70,7 +71,7 @@ elif method_name == 'bnn':
         quit()    
         
 elif method_name == 'flow':
-    assert (len(sys.argv)==3)
+    assert (len(sys.argv)==4)
     
 else:
     print('Method not implemented: Try ann, bnn or flow')
@@ -78,14 +79,14 @@ else:
     
 model_name = method_name
 for i in range(2, len(sys.argv)):
-    model_name += sys.argv[i]
+    model_name += '_'+sys.argv[i]
 
 # Setting global parameters (change as you wish)
 N = 3000 # Total data size
 N_train = 1800 # Training data size
 
 BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 250 
+EPOCHS = 200 
 
 
 # Data manipulation
@@ -156,15 +157,15 @@ if method_name != 'flow':
     
     # Propagating predictions to Newsvendor Problem
     M = M_SAMPLES
-    sell_price = 200
+    cost_shortage = 100
     dict_results_nr = {}
     train_NN.model.update_n_samples(n_samples=M)
     y_pred = train_NN.model.forward_dist(X_val, aleat_bool)[:,:,0]
     y_pred = inverse_transform(y_pred)
     
-    for cost_price in (np.arange(0.02,1,0.02)*sell_price):
-        quantile = (sell_price-cost_price)/sell_price
-        cn2 = ClassicalNewsvendor(sell_price, cost_price)
+    for quantile in np.arange(0.02,1,0.02):
+        cost_excess = cost_shortage*(1-quantile)/quantile
+        cn2 = ClassicalNewsvendor(cost_shortage, cost_excess)
         dict_results_nr[str(quantile)] = round(
             cn2.compute_norm_regret_from_preds(
             X_val, y_val_original, y_pred, M, method_name).item(), 
@@ -185,11 +186,11 @@ else:
         y_pred[:,i] = pyx.condition(X_val[i]).sample(torch.Size([M,])).squeeze()
     
     y_pred = inverse_transform(y_pred)
-    sell_price = 200
+    cost_shortage = 100
     dict_results_nr = {}
-    for cost_price in (np.arange(0.02,1,0.02)*sell_price):
-        quantile = (sell_price-cost_price)/sell_price
-        cn2 = ClassicalNewsvendor(sell_price, cost_price)
+    for quantile in np.arange(0.02,1,0.02):
+        cost_excess = cost_shortage*(1-quantile)/quantile
+        cn2 = ClassicalNewsvendor(cost_shortage, cost_excess)
         dict_results_nr[str(quantile)] = round(
             cn2.compute_norm_regret_from_preds(
             X_val, y_val_original, y_pred, M, method_name).item(), 
