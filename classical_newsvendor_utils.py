@@ -53,10 +53,10 @@ class ClassicalNewsvendor():
 
 
     def compute_norm_regret_from_preds(self, X_val, y_val, Y_pred, M, method_name):
-        if method_name=='ann':
-            z_pred = self.get_argmins_from_value(Y_pred[0,:])
-        else:
-            z_pred = self.get_argmins_from_dist(Y_pred)
+        #if method_name=='ann':
+        #    z_pred = self.get_argmins_from_value(Y_pred[0,:])
+        #else:
+        z_pred = self.get_argmins_from_dist(Y_pred)
 
         z_best = self.get_argmins_from_value(y_val[:,0])
 

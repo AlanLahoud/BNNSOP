@@ -42,38 +42,51 @@ np.random.seed(seed_number)
 torch.manual_seed(seed_number)
 random.seed(seed_number)
 
-method_name = sys.argv[1]
-
+aleat_bool = False
 bnn = False
-if method_name == 'bnn':
-    assert (len(sys.argv)==3)
+N_SAMPLES = 16 # Sampling size while training
+M_SAMPLES = 64 # Sampling size while optimizing
+
+
+method_name = sys.argv[1]
+noise_type = sys.argv[2]
+
+if method_name == 'ann':
+    assert (len(sys.argv)==6)
+    aleat_bool = bool(int(sys.argv[3])) 
+    N_SAMPLES = int(sys.argv[4]) 
+    M_SAMPLES = int(sys.argv[5]) 
+
+elif method_name == 'bnn':
     bnn = True
-    K = float(sys.argv[2])
-    PLV = 5
+    assert (len(sys.argv)==6)  
+    aleat_bool = bool(int(sys.argv[3])) 
+    N_SAMPLES = int(sys.argv[4]) 
+    M_SAMPLES = int(sys.argv[5])     
+    K = 5
+    PLV = 3
     if K>10000 or K<0:
         print('Try K between 0 and 10000')
         quit()    
+        
 elif method_name == 'flow':
-    assert (len(sys.argv)==2)
-elif method_name == 'ann':
     assert (len(sys.argv)==3)
-    eps = float(sys.argv[2])
+    
 else:
-    print('Method not implemented: Try bnn or flow')
+    print('Method not implemented: Try ann, bnn or flow')
     quit()
     
 model_name = method_name
 for i in range(2, len(sys.argv)):
     model_name += sys.argv[i]
 
+# Setting global parameters (change as you wish)
+N = 3000 # Total data size
+N_train = 1800 # Training data size
 
-# Setting parameters (change if necessary)
-N = 8000 # Total data size
-N_train = 5000 # Training data size
-N_SAMPLES = 16 # Sampling size while training
 BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 10 
-noise_type = 'poisson'
+EPOCHS = 250 
+
 
 # Data manipulation
 N_valid = N - N_train
@@ -116,15 +129,15 @@ if method_name != 'flow':
 
     # Model setting
     if method_name == 'bnn':
-        h = VariationalNet2(N_SAMPLES, input_size, output_size, PLV).to(dev)
+        h = VariationalNet(N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
         
     elif method_name == 'ann':
-        h = StandardNet(input_size, output_size, eps).to(dev)
+        h = StandardNet(input_size, output_size).to(dev)
         K = 0
 
-    opt_h = torch.optim.Adam(h.parameters(), lr=0.001)
+    opt_h = torch.optim.Adam(h.parameters(), lr=0.0007)
     mse_loss = nn.MSELoss(reduction='none')
-
+    
     # Training regression with BNN or ANN
     train_NN = TrainDecoupled(
                     bnn = bnn,
@@ -132,22 +145,24 @@ if method_name != 'flow':
                     opt=opt_h,
                     loss_data=mse_loss,
                     K=K,
+                    aleat_bool=aleat_bool,
                     training_loader=training_loader,
-                    validation_loader=validation_loader
+                    validation_loader=validation_loader,
+                    dev=dev
                 )
 
     train_NN.train(EPOCHS=EPOCHS)
     model_used = train_NN.model
     
     # Propagating predictions to Newsvendor Problem
-    M = 1000
+    M = M_SAMPLES
     sell_price = 200
     dict_results_nr = {}
     train_NN.model.update_n_samples(n_samples=M)
-    y_pred = train_NN.model.forward_dist(X_val)[:,:,0]
+    y_pred = train_NN.model.forward_dist(X_val, aleat_bool)[:,:,0]
     y_pred = inverse_transform(y_pred)
     
-    for cost_price in (np.arange(0.1,1,0.1)*sell_price):
+    for cost_price in (np.arange(0.02,1,0.02)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
         cn2 = ClassicalNewsvendor(sell_price, cost_price)
         dict_results_nr[str(quantile)] = round(
@@ -163,7 +178,7 @@ else:
     model_used = pyx
     
     # Propagating predictions to Newsvendor Problem
-    M = 1000
+    M = M_SAMPLES
     N = X_val.shape[0]     
     y_pred = torch.zeros((M, N))
     for i in range(0, N):
@@ -172,7 +187,7 @@ else:
     y_pred = inverse_transform(y_pred)
     sell_price = 200
     dict_results_nr = {}
-    for cost_price in (np.arange(0.1,1,0.05)*sell_price):
+    for cost_price in (np.arange(0.02,1,0.02)*sell_price):
         quantile = (sell_price-cost_price)/sell_price
         cn2 = ClassicalNewsvendor(sell_price, cost_price)
         dict_results_nr[str(quantile)] = round(
@@ -180,8 +195,8 @@ else:
             X_val, y_val_original, y_pred, M, method_name).item(), 
             3)             
 
-torch.save(model_used, f'./models/{model_name}_{noise_type}.pkl')
+torch.save(model_used, f'./models/{model_name}.pkl')
     
     
 df_nr = pd.DataFrame.from_dict(dict_results_nr, orient='index', columns=['NR'])
-df_nr.to_csv(f'./newsvendor_results/{model_name}_{noise_type}_nr.csv')
+df_nr.to_csv(f'./newsvendor_results/{model_name}_nr.csv')

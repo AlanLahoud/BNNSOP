@@ -2,13 +2,16 @@ import sys
 import torch
 import math
 
+import pdb
+
 class TrainDecoupled():
     
-    def __init__(self, bnn, model, opt, loss_data, K, training_loader, validation_loader, dev):
+    def __init__(self, bnn, model, opt, loss_data, K, aleat_bool, training_loader, validation_loader, dev):
         self.model = model
         self.opt = opt
         self.loss_data = loss_data
         self.K = K
+        self.aleat_bool = aleat_bool
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.bnn = bnn
@@ -33,13 +36,17 @@ class TrainDecoupled():
             
             self.opt.zero_grad()
  
-            y_preds = self.model(x_batch)
+            y_preds, rho_preds = self.model(x_batch)
 
             if self.bnn:
                 #pdb.set_trace()
                 #y_preds = y_preds.mean(axis=0)
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
-                loss_data_ = self.loss_data(y_preds, y_batch)
+                
+                if self.aleat_bool:
+                    loss_data_ = self.loss_data(y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
+                else:
+                    loss_data_ = self.loss_data(y_preds, y_batch)
 
                 #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
                 loss_data_ = loss_data_.mean(axis=1) #through batch
@@ -47,7 +54,12 @@ class TrainDecoupled():
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
 
             else:
-                loss_data_ = self.loss_data(y_preds, y_batch)
+                
+                if self.aleat_bool:
+                    loss_data_ = self.loss_data(y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
+                else:
+                    loss_data_ = self.loss_data(y_preds, y_batch)
+                
                 loss_data_ = loss_data_.mean(axis=0) #through batch
                 kl_loss_ = torch.tensor(0)
                 
@@ -96,17 +108,26 @@ class TrainDecoupled():
                 x_val_batch = x_val_batch.to(self.dev)
                 y_val_batch = y_val_batch.to(self.dev)
 
-                y_val_preds = self.model(x_val_batch)
+                y_val_preds, rho_val_preds = self.model(x_val_batch)
                 
                 if self.bnn:
                     y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
-                    loss_data_ = self.loss_data(y_val_preds, y_val_batch)
+                    
+                    if self.aleat_bool:
+                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
+                    else:
+                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)
+                                     
                     loss_data_ = loss_data_.mean(axis=1) #through batch
                     loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
                     #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
                     
                 else:
-                    loss_data_ = self.loss_data(y_val_preds, y_val_batch)
+                    if self.aleat_bool:
+                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
+                    else:
+                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)
+                        
                     loss_data_ = loss_data_.mean() #through batch
                 
                 loss_data_ = loss_data_.mean(axis=-1) #through output dimension
