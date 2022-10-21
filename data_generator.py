@@ -18,9 +18,12 @@ class ArtificialDataset(torch.utils.data.Dataset):
         return X_i, y_i
 
 
-def data_1to1(N, noise_level=1, noise_type='gaussian'):
+def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False):
     
-    X = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(3, 1, N-N//2)))
+    if uniform_input_space:
+        X = np.arange(-4, 4, 8/N)
+    else:
+        X = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(3, 1, N-N//2)))
     
     y_perfect = 5 + np.abs(np.abs(6*X)*np.sin(X) + np.sin(6*X)*(0.5*X))
 
@@ -46,10 +49,10 @@ def data_1to1(N, noise_level=1, noise_type='gaussian'):
         exit()
     
     y = np.where(y<0, 0, y)
-    X = np.expand_dims(preprocessing.scale(X), axis=1)
+    #X = np.expand_dims(preprocessing.scale(X), axis=1)
     #y = np.expand_dims(preprocessing.scale(y), axis=1)
     
-    #X = np.expand_dims(X, axis=1)
+    X = np.expand_dims(X, axis=1)
     y = np.expand_dims(y, axis=1)
     
     return X, y

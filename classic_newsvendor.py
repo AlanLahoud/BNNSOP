@@ -37,20 +37,20 @@ if torch.cuda.is_available():
 # Setting the seeds to allow replication
 # Changing the seed might require hyperparameter tuning again
 # Because it changes the deterministic parameters
-seed_number = 0
-np.random.seed(seed_number)
-torch.manual_seed(seed_number)
-random.seed(seed_number)
+
 
 aleat_bool = False
 bnn = False
 N_SAMPLES = 16 # Sampling size while training
 M_SAMPLES = 64 # Sampling size while optimizing
 
-
 method_name = sys.argv[1]
 noise_type = sys.argv[2]
-seed = sys.argv[3]
+seed_number = int(sys.argv[3])
+
+np.random.seed(seed_number)
+torch.manual_seed(seed_number)
+random.seed(seed_number)
 
 if method_name == 'ann':
     assert (len(sys.argv)==7)
@@ -91,7 +91,9 @@ EPOCHS = 200
 
 # Data manipulation
 N_valid = N - N_train
-X, y_original = data_generator.data_1to1(N_train, noise_level=1, noise_type = noise_type)
+X, y_original = data_generator.data_1to1(
+    N_train, noise_level=1, noise_type = noise_type,
+    uniform_input_space=False)
 
 # Output normalization
 scaler = StandardScaler()
@@ -112,7 +114,9 @@ training_loader = torch.utils.data.DataLoader(
     data_train, batch_size=BATCH_SIZE_LOADER,
     shuffle=False, num_workers=mp.cpu_count())
 
-X_val, y_val_original = data_generator.data_1to1(N_valid, noise_level=1, noise_type = noise_type)
+X_val, y_val_original = data_generator.data_1to1(
+    N_valid, noise_level=1, noise_type = noise_type, 
+    uniform_input_space=True)
 y_val = scaler.transform(y_val_original).copy()
 X_val = torch.tensor(X_val, dtype=torch.float32)
 y_val_original = torch.tensor(y_val_original, dtype=torch.float32)
