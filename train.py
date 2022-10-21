@@ -154,9 +154,10 @@ class TrainDecoupled():
             
 class TrainCombined():
     
-    def __init__(self, bnn, model, opt, training_loader, validation_loader, OP, dev):
+    def __init__(self, bnn, model, opt, aleat_bool, training_loader, validation_loader, OP, dev):
         self.model = model
         self.opt = opt
+        self.aleat_bool = aleat_bool
         self.training_loader = training_loader
         self.validation_loader = validation_loader
         self.bnn = bnn
@@ -181,8 +182,13 @@ class TrainCombined():
             
             self.opt.zero_grad()
  
-            y_preds = self.model(x_batch)
+            y_preds, rho_preds = self.model(x_batch)
 
+            if self.aleat_bool:
+                y_preds = y_preds + torch.sqrt(
+                    torch.exp(rho_preds))*torch.randn(
+                    y_preds.size(), device = self.dev)
+    
             if self.bnn:
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 total_loss = self.end_loss_dist(y_preds, y_batch)
@@ -225,9 +231,14 @@ class TrainCombined():
                 
                 x_val_batch = x_val_batch.to(self.dev)
                 y_val_batch = y_val_batch.to(self.dev)
-                
-                y_val_preds = self.model(x_val_batch)
-                
+                      
+                y_val_preds, rho_val_preds = self.model(x_val_batch)
+
+                if self.aleat_bool:
+                    y_val_preds = y_val_preds + torch.sqrt(
+                        torch.exp(rho_val_preds))*torch.randn(
+                        y_val_preds.size(), device = self.dev)
+
                 if self.bnn:
                     y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
                     total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
