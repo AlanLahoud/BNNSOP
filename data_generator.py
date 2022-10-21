@@ -59,49 +59,31 @@ def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False
 
 
 
-def data_4to1(N, noise_level=1):
-
-    x1 = np.random.normal(0, 1, size=N)
-    x2 = np.random.poisson(lam=1.0, size=N)
-    x3 = np.random.gamma(3, scale=1.0, size=N)
-    x4 = np.random.uniform(low=-1.0, high=4.0, size=N)
-    
-    X = np.vstack((x1, x2, x3, x4)).T
-    
-    y_perfect = (
-        3*x1*np.sin(x1*x2) 
-        + x4*np.abs(x1*x3) 
-        + 5*np.log(np.abs(x4)) 
-        + 8*np.sin(3*x2*x4)
-    )
-    
-    # Noise
-    n = (
-        np.random.normal(0, noise_level, N)*np.abs(x1*x2)
-        + np.random.normal(0, noise_level, N)*x4*np.abs(x3)
-    )
-    y = y_perfect + n
-    
-    return X, y
-
-
-def data_4to8(N, noise_level=1, seed_number=42):
+def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False):
 
     np.random.seed(seed_number)
-    x1 = np.random.normal(0, 1, N)
-    x2 = np.random.normal(0, 1, N)
-    x3 = np.random.normal(0, 1, N)
-    x4 = np.random.normal(0, 1, N)
+    
+    if uniform_input_space:
+        x1 = np.arange(-4, 4, 8/N)
+        x2 = np.arange(-5, 5, 10/N)
+        x3 = np.arange(-4, 4, 8/N)
+        x4 = np.arange(-4, 3, 7/N)
+    else:
+        x1 = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(3, 1, N-N//2)))
+        x2 = np.hstack((np.random.normal(-4, 1, N//2), np.random.normal(4, 1, N-N//2)))
+        x3 = np.hstack((np.random.normal(-3, 0.7, N//2), np.random.normal(3, 0.7, N-N//2)))
+        x4 = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(1, 2, N-N//2)))
+    
 
     y1_perfect = np.maximum(5 + np.abs(6*x1)*np.sin(x2) + 4*np.sin(6*x3), 0)
     y2_perfect = np.maximum(3 + np.abs(10*x2)*np.sin(x3)**2 + 2*np.sin(6*x1), 0)
     y3_perfect = np.maximum(3 + np.abs(4*x3)**0.5*np.sin(x2) + 4*np.sin(2*x4), 0)
     y4_perfect = np.maximum(7 + np.abs(6*x4)*np.sin(x1) + 2*np.sin(6*x2)**2, 0)
     
-    y5_perfect = y1_perfect + y2_perfect
-    y6_perfect = y2_perfect + y3_perfect
-    y7_perfect = y3_perfect + y4_perfect
-    y8_perfect = y4_perfect + y1_perfect
+    y5_perfect = 5 + y1_perfect + y2_perfect
+    y6_perfect = 5 + y2_perfect + y3_perfect
+    y7_perfect = 5 + y3_perfect + y4_perfect
+    y8_perfect = 5 + y4_perfect + y1_perfect
 
     n_gaussian_1 = np.random.normal(1, noise_level, N)
     n_gaussian_2 = np.random.normal(1, 0.5*noise_level, N)
