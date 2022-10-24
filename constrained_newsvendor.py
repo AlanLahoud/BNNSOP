@@ -60,11 +60,14 @@ def run_constrained_newsvendor(
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 150  # Epochs on training
     
+    lr = 0.001
+    
     if dev == torch.device('cuda'):
         BATCH_SIZE_LOADER = 128
     
     if method_learning == 'combined':
-        EPOCHS = 80
+        EPOCHS = 40
+        lr = 0.005
 
 
 
@@ -148,7 +151,7 @@ def run_constrained_newsvendor(
         h = StandardNet(input_size, output_size).to(dev)
         K = 0
 
-    opt_h = torch.optim.Adam(h.parameters(), lr=0.001)
+    opt_h = torch.optim.Adam(h.parameters(), lr=lr)
     mse_loss = nn.MSELoss(reduction='none')
 
     if method_learning == 'decoupled':
