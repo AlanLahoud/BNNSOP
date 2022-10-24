@@ -275,4 +275,3 @@ if __name__ == '__main__':
     print('NR: ', round(nr_avg, 5), '(', round(nr_std, 5), ')')
         
     df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')
-    

@@ -20,188 +20,254 @@ import joblib
 
 # Utils
 import data_generator
-from model import VariationalLayer, VariationalNet, StandardNet, VariationalNet2
-from train import TrainDecoupled
+from model import VariationalLayer, VariationalNet, StandardNet
+from train import TrainDecoupled, TrainCombined
 from classical_newsvendor_utils import ClassicalNewsvendor
-import train_normflow
 
 
-
-is_cuda = False
-dev = torch.device('cpu')  
-if torch.cuda.is_available():
-    is_cuda = True
-    dev = torch.device('cuda')  
+   
+def run_classic_newsvendor(
+            method_name, 
+            method_learning,
+            noise_type,
+            seed_number,
+            aleat_bool,
+            N_SAMPLES,
+            M_SAMPLES,
+            dev):
     
-    
-# Setting the seeds to allow replication
-# Changing the seed might require hyperparameter tuning again
-# Because it changes the deterministic parameters
+    ##################################################################
+    ##### Setting Parameters #########################################
+    ##################################################################
 
+    np.random.seed(seed_number)
+    torch.manual_seed(seed_number)
+    random.seed(seed_number)
 
-aleat_bool = False
-bnn = False
-N_SAMPLES = 16 # Sampling size while training
-M_SAMPLES = 64 # Sampling size while optimizing
+    assert (method_name in ['ann','bnn'])
+    assert (method_learning in ['decoupled','combined'])
+    assert (noise_type in ['gaussian','multimodal'])
+    assert (aleat_bool in [True, False])
+    assert (N_SAMPLES>=1 and N_SAMPLES<9999)
+    assert (M_SAMPLES>=1 and M_SAMPLES<9999)
 
-method_name = sys.argv[1]
-noise_type = sys.argv[2]
-seed_number = int(sys.argv[3])
-
-np.random.seed(seed_number)
-torch.manual_seed(seed_number)
-random.seed(seed_number)
-
-if method_name == 'ann':
-    assert (len(sys.argv)==7)
-    aleat_bool = bool(int(sys.argv[4])) 
-    N_SAMPLES = int(sys.argv[5]) 
-    M_SAMPLES = int(sys.argv[6]) 
-
-elif method_name == 'bnn':
-    bnn = True
-    assert (len(sys.argv)==7)  
-    aleat_bool = bool(int(sys.argv[4])) 
-    N_SAMPLES = int(sys.argv[5]) 
-    M_SAMPLES = int(sys.argv[6])     
-    K = 5
-    PLV = 3
-    if K>10000 or K<0:
-        print('Try K between 0 and 10000')
-        quit()    
-        
-elif method_name == 'flow':
-    assert (len(sys.argv)==4)
-    
-else:
-    print('Method not implemented: Try ann, bnn or flow')
-    quit()
-    
-model_name = method_name
-for i in range(2, len(sys.argv)):
-    model_name += '_'+sys.argv[i]
-
-# Setting global parameters (change as you wish)
-N = 3000 # Total data size
-N_train = 1800 # Training data size
-
-BATCH_SIZE_LOADER = 32 # Standard batch size
-EPOCHS = 200 
-
-
-# Data manipulation
-N_valid = N - N_train
-X, y_original = data_generator.data_1to1(
-    N_train, noise_level=1, noise_type = noise_type,
-    uniform_input_space=False)
-
-# Output normalization
-scaler = StandardScaler()
-scaler.fit(y_original)
-tmean = torch.tensor(scaler.mean_.item())
-tstd = torch.tensor(scaler.scale_.item())
-joblib.dump(scaler, 'scaler.gz')
-
-def inverse_transform(yy):
-    return yy*tstd + tmean
-
-y = scaler.transform(y_original).copy()
-X = torch.tensor(X, dtype=torch.float32)
-y = torch.tensor(y, dtype=torch.float32)
-
-data_train = data_generator.ArtificialDataset(X, y)
-training_loader = torch.utils.data.DataLoader(
-    data_train, batch_size=BATCH_SIZE_LOADER,
-    shuffle=False, num_workers=mp.cpu_count())
-
-X_val, y_val_original = data_generator.data_1to1(
-    N_valid, noise_level=1, noise_type = noise_type, 
-    uniform_input_space=True)
-y_val = scaler.transform(y_val_original).copy()
-X_val = torch.tensor(X_val, dtype=torch.float32)
-y_val_original = torch.tensor(y_val_original, dtype=torch.float32)
-y_val = torch.tensor(y_val, dtype=torch.float32)
-
-data_valid = data_generator.ArtificialDataset(X_val, y_val)
-validation_loader = torch.utils.data.DataLoader(
-    data_valid, batch_size=BATCH_SIZE_LOADER,
-    shuffle=False, num_workers=mp.cpu_count())
-
-input_size = X.shape[1]
-output_size = y.shape[1]
-
-if method_name != 'flow':
-
-    # Model setting
+    bnn = False 
     if method_name == 'bnn':
-        h = VariationalNet(N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-        
+        bnn = True   
+        K = 5 # Hyperparameter for the training in ELBO loss
+        PLV = 3 # Hyperparameter for the prior in ELBO loss         
+
+    model_name = method_name
+    for i in range(2, len(sys.argv)):
+        model_name += '_'+sys.argv[i]
+    model_name += '_'+ str(seed_number)
+
+    N_train = 1800
+    N_valid = 1200
+    N_test = 1200
+
+    BATCH_SIZE_LOADER = 32 # Standard batch size
+    EPOCHS = 200  # Epochs on training
+
+    #OP deterministic params
+    cost_shortage=100
+    if method_learning == 'combined':
+        cost_excess=900 # quantile 0.1
+        model_name = model_name \
+        + f'_q{(cost_shortage)/(cost_shortage+cost_excess)}'
+        cn = ClassicalNewsvendor(cost_shortage, cost_excess)
+
+
+    ##################################################################
+    ##### Data #######################################################
+    ##################################################################
+
+    X, y_original = data_generator.data_1to1(
+        N_train, noise_level=1, noise_type = noise_type,
+        uniform_input_space=False)
+
+    # Output normalization
+    scaler = StandardScaler()
+    scaler.fit(y_original)
+    tmean = torch.tensor(scaler.mean_.item())
+    tstd = torch.tensor(scaler.scale_.item())
+    joblib.dump(scaler, 'scaler.gz') # if you need to analyse
+
+    def inverse_transform(yy):
+        return yy*tstd + tmean
+
+    y = scaler.transform(y_original).copy()
+    X = torch.tensor(X, dtype=torch.float32)
+    y = torch.tensor(y, dtype=torch.float32)
+
+    data_train = data_generator.ArtificialDataset(X, y)
+    training_loader = torch.utils.data.DataLoader(
+        data_train, batch_size=BATCH_SIZE_LOADER,
+        shuffle=False, num_workers=mp.cpu_count())
+
+    X_val, y_val_original = data_generator.data_1to1(
+        N_valid, noise_level=1, noise_type = noise_type, 
+        uniform_input_space=False)
+    y_val = scaler.transform(y_val_original).copy()
+    X_val = torch.tensor(X_val, dtype=torch.float32)
+    y_val_original = torch.tensor(y_val_original, dtype=torch.float32)
+    y_val = torch.tensor(y_val, dtype=torch.float32)
+
+    data_valid = data_generator.ArtificialDataset(X_val, y_val)
+    validation_loader = torch.utils.data.DataLoader(
+        data_valid, batch_size=BATCH_SIZE_LOADER,
+        shuffle=False, num_workers=mp.cpu_count())
+
+    X_test, y_test_original = data_generator.data_1to1(
+        N_test, noise_level=1, noise_type = noise_type, 
+        uniform_input_space=False)
+    X_test = torch.tensor(X_test, dtype=torch.float32)
+    y_test_original = torch.tensor(y_test_original, dtype=torch.float32)
+     
+    input_size = X.shape[1]
+    output_size = y.shape[1]
+
+
+
+    ##################################################################
+    ##### Model and Training #########################################
+    ##################################################################
+
+    if method_name == 'bnn':
+        h = VariationalNet(
+            N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
+
     elif method_name == 'ann':
         h = StandardNet(input_size, output_size).to(dev)
         K = 0
 
     opt_h = torch.optim.Adam(h.parameters(), lr=0.0007)
     mse_loss = nn.MSELoss(reduction='none')
-    
-    # Training regression with BNN or ANN
-    train_NN = TrainDecoupled(
-                    bnn = bnn,
-                    model=h,
-                    opt=opt_h,
-                    loss_data=mse_loss,
-                    K=K,
-                    aleat_bool=aleat_bool,
-                    training_loader=training_loader,
-                    validation_loader=validation_loader,
-                    dev=dev
-                )
 
-    train_NN.train(EPOCHS=EPOCHS)
-    model_used = train_NN.model
-    
-    # Propagating predictions to Newsvendor Problem
+    if method_learning == 'decoupled':
+        train_NN = TrainDecoupled(
+                        bnn = bnn,
+                        model=h,
+                        opt=opt_h,
+                        loss_data=mse_loss,
+                        K=K,
+                        aleat_bool=aleat_bool,
+                        training_loader=training_loader,
+                        validation_loader=validation_loader,
+                        dev=dev
+                    )
+
+    elif method_learning == 'combined':
+        train_NN = TrainCombined(
+                        bnn = bnn,
+                        model=h,
+                        opt=opt_h,
+                        aleat_bool=aleat_bool,
+                        training_loader=training_loader,
+                        validation_loader=validation_loader,
+                        OP=cn,
+                        dev=dev
+                    )
+
+    else:
+        print('check method_learning variable')
+        quit()
+
+    model_used = train_NN.train(EPOCHS=EPOCHS)
+
+
     M = M_SAMPLES
-    cost_shortage = 100
-    dict_results_nr = {}
-    train_NN.model.update_n_samples(n_samples=M)
-    y_pred = train_NN.model.forward_dist(X_val, aleat_bool)[:,:,0]
+    model_used.update_n_samples(n_samples=M)
+    y_pred = model_used.forward_dist(X_test, aleat_bool)[:,:,0]
     y_pred = inverse_transform(y_pred)
-    
+
+
+    mse_loss = nn.MSELoss()
+    mse_loss_result = mse_loss(
+        y_pred.mean(axis=0).squeeze(), 
+        y_test_original.squeeze()
+    ).item()
+
+    ##################################################################
+    ##### Solving the Optimization Problem ###########################
+    ##################################################################
+
+    dict_results = {}
+
     for quantile in np.arange(0.02,1,0.02):
         cost_excess = cost_shortage*(1-quantile)/quantile
         cn2 = ClassicalNewsvendor(cost_shortage, cost_excess)
-        dict_results_nr[str(quantile)] = round(
+        dict_results[str(round(quantile, 4))] = round(
             cn2.compute_norm_regret_from_preds(
-            X_val, y_val_original, y_pred, M, method_name).item(), 
+            X_test, y_test_original, y_pred, M, method_name).item(), 
             3)
+    
+    print('Results for seed = ', seed_number)
+    print('MSE loss: ', round(mse_loss_result, 5))
+    print('END loss: ', round(dict_results['0.1'], 5))#only for q=0.1
 
+    return model_used, model_name, dict_results, mse_loss_result
+    
 
-else:
-    # Training regression with FLOW
-    trfl = train_normflow.TrainFlowDecoupled(steps = 5000, input_size=1, output_size=1)
-    pyx = trfl.train(X, y, X_val, y_val)
-    model_used = pyx
+if __name__ == '__main__':
     
-    # Propagating predictions to Newsvendor Problem
-    M = M_SAMPLES
-    N = X_val.shape[0]     
-    y_pred = torch.zeros((M, N))
-    for i in range(0, N):
-        y_pred[:,i] = pyx.condition(X_val[i]).sample(torch.Size([M,])).squeeze()
+    is_cuda = False
+    dev = torch.device('cpu')  
+    if torch.cuda.is_available():
+        is_cuda = True
+        dev = torch.device('cuda') 
     
-    y_pred = inverse_transform(y_pred)
-    cost_shortage = 100
-    dict_results_nr = {}
-    for quantile in np.arange(0.02,1,0.02):
-        cost_excess = cost_shortage*(1-quantile)/quantile
-        cn2 = ClassicalNewsvendor(cost_shortage, cost_excess)
-        dict_results_nr[str(quantile)] = round(
-            cn2.compute_norm_regret_from_preds(
-            X_val, y_val_original, y_pred, M, method_name).item(), 
-            3)             
+    assert (len(sys.argv)==8)
+    method_name = sys.argv[1] # ann or bnn
+    method_learning = sys.argv[2] # decoupled or combined
+    noise_type = sys.argv[3] # gaussian or multimodal
+    nr_seeds = int(sys.argv[4]) # Average results through seeds
+    aleat_bool = bool(int(sys.argv[5])) # Modeling aleatoric uncert
+    N_SAMPLES = int(sys.argv[6])  # Sampling size while training
+    M_SAMPLES = int(sys.argv[7])  # Sampling size while optimizing
+    
+    df_total = pd.DataFrame()
+    for seed_number in range(0, nr_seeds):
+        model_used, model_name, dict_results, mse_loss_result \
+        = run_classic_newsvendor(
+            method_name, 
+            method_learning,
+            noise_type,
+            seed_number,
+            aleat_bool,
+            N_SAMPLES,
+            M_SAMPLES,
+            dev
+        )
+        
+        df_results = pd.DataFrame.from_dict(
+            dict_results, orient='index', columns=[f'NR_{seed_number}'])
+        df_results[f'MSE_{seed_number}'] = mse_loss_result
+        
+        df_total = pd.concat([df_total, df_results], axis=1)
+        
+               
+        ##############################################################
+        ##### Saving model and results ###############################
+        ##############################################################
+        
+        torch.save(model_used, 
+                   f'./models/{model_name}_{seed_number}.pkl') 
+         
 
-torch.save(model_used, f'./models/{model_name}.pkl')
+    cols_mse = [c for c in df_total.columns.tolist() if 'MSE' in c]
+    cols_nr = [c for c in df_total.columns.tolist() if 'NR' in c]
     
+    print('---------------------------------------------------')
+    print('-----------------Results---------------------------')
+    print(f'Params: {model_name}')
+    mse_mean = df_total[cols_mse].mean(axis=1).mean()
+    mse_std = df_total[cols_mse].std(axis=1).mean()
+    print('MSE: ', round(mse_mean, 5), '(', round(mse_std, 5), ')')
     
-df_nr = pd.DataFrame.from_dict(dict_results_nr, orient='index', columns=['NR'])
-df_nr.to_csv(f'./newsvendor_results/{model_name}_nr.csv')
+    nr01_mean = df_total[cols_nr].mean(axis=1).loc['0.1']
+    nr01_std = df_total[cols_nr].std(axis=1).loc['0.1']
+    print('NR 0.1: ', round(nr01_mean, 5), '(', round(nr01_std, 5), ')')
+    
+
+    df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')
