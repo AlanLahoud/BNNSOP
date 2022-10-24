@@ -74,8 +74,8 @@ def run_constrained_newsvendor(
     # Output normalization
     scaler = StandardScaler()
     scaler.fit(Y_original)
-    tmean = torch.tensor(scaler.mean_)
-    tstd = torch.tensor(scaler.scale_)
+    tmean = torch.tensor(scaler.mean_).to(dev)
+    tstd = torch.tensor(scaler.scale_).to(dev)
     joblib.dump(scaler, 'scaler_constrained.gz')
 
     def inverse_transform(yy):
