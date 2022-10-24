@@ -69,6 +69,8 @@ def run_classic_newsvendor(
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 200  # Epochs on training
 
+    lr = 0.002
+    
     #OP deterministic params
     cost_shortage=100
     if method_learning == 'combined':
@@ -76,6 +78,7 @@ def run_classic_newsvendor(
         model_name = model_name \
         + f'_q{(cost_shortage)/(cost_shortage+cost_excess)}'
         cn = ClassicalNewsvendor(cost_shortage, cost_excess)
+        lr = 0.0003
 
 
     ##################################################################
