@@ -13,12 +13,12 @@ class SolveConstrainedNewsvendor():
         self.n_samples = n_samples
             
         # Torch parameters for KKT         
-        ident = torch.eye(n_items)
-        ident_samples = torch.eye(n_items*n_samples)
-        ident3 = torch.eye(n_items + 2*n_items*n_samples)
-        zeros_matrix = torch.zeros((n_items*n_samples, n_items*n_samples))
-        zeros_array = torch.zeros(n_items*n_samples)
-        ones_array = torch.ones(n_items*n_samples)
+        ident = torch.eye(n_items).to(self.dev)
+        ident_samples = torch.eye(n_items*n_samples).to(self.dev)
+        ident3 = torch.eye(n_items + 2*n_items*n_samples).to(self.dev)
+        zeros_matrix = torch.zeros((n_items*n_samples, n_items*n_samples)).to(self.dev)
+        zeros_array = torch.zeros(n_items*n_samples).to(self.dev)
+        ones_array = torch.ones(n_items*n_samples).to(self.dev)
              
         self.Q = torch.diag(
             torch.hstack(
