@@ -99,9 +99,9 @@ def run_constrained_newsvendor(
         N_valid, noise_level=nl, 
         uniform_input_space=False)
     Y_val = scaler.transform(Y_val_original).copy()
-    X_val = torch.tensor(X_val, dtype=torch.float32).to(dev)
-    Y_val_original = torch.tensor(Y_val_original, dtype=torch.float32).to(dev)
-    Y_val = torch.tensor(Y_val, dtype=torch.float32).to(dev)
+    X_val = torch.tensor(X_val, dtype=torch.float32)
+    Y_val_original = torch.tensor(Y_val_original, dtype=torch.float32)
+    Y_val = torch.tensor(Y_val, dtype=torch.float32)
 
     data_valid = data_generator.ArtificialDataset(X_val, Y_val)
     validation_loader = torch.utils.data.DataLoader(
