@@ -1,8 +1,11 @@
 import sys
 import torch
+import numpy as np
 import math
+from tqdm import tqdm
+import copy
+ 
 
-import pdb
 
 class TrainDecoupled():
     
@@ -81,10 +84,12 @@ class TrainDecoupled():
     
     def train(self, EPOCHS=150):
         epoch_number = 0
-
-        for epoch in range(EPOCHS):
-            print('------------------EPOCH {}------------------'.format(
-                epoch_number + 1))
+ 
+        avg_best_vloss = np.inf
+        best_model = copy.deepcopy(self.model)
+    
+        for epoch in tqdm(range(EPOCHS)):
+            
 
             self.model.train(True)
             avg_loss_data_loss, avg_kl_loss = self.train_one_epoch()
@@ -140,15 +145,24 @@ class TrainDecoupled():
 
             avg_vloss = avg_vloss_data + avg_vklloss
 
-            print('DATA LOSS \t train {} valid {}'.format(
-                round(avg_loss_data_loss, 3), round(avg_vloss_data, 3)))
-            print('KL LOSS \t train {} valid {}'.format(
-                round(avg_kl_loss/(self.K+0.000001), 2), round(avg_vklloss/(self.K+0.000001), 2)))
-            print('ELBO LOSS \t train {} valid {}'.format(
-                round(avg_loss, 2), round(avg_vloss, 2)))
+            if epoch_number == 0 or (epoch_number+1)%10 == 0:           
+                print('------------------EPOCH {}------------------'.format(
+                    epoch_number + 1))
 
+                print('DATA LOSS \t train {} valid {}'.format(
+                    round(avg_loss_data_loss, 3), round(avg_vloss_data, 3)))
+                print('KL LOSS \t train {} valid {}'.format(
+                    round(avg_kl_loss/(self.K+0.000001), 2), round(avg_vklloss/(self.K+0.000001), 2)))
+                print('ELBO LOSS \t train {} valid {}'.format(
+                    round(avg_loss, 2), round(avg_vloss, 2)))
+    
+            if  avg_vloss < avg_best_vloss:
+                avg_best_vloss = avg_vloss
+                best_model=copy.deepcopy(self.model)
+            
             epoch_number += 1
             
+        return best_model 
             
 
             
@@ -210,10 +224,11 @@ class TrainCombined():
     
     def train(self, EPOCHS=150):
         epoch_number = 0
-
-        for epoch in range(EPOCHS):
-            print('------------------EPOCH {}------------------'.format(
-                epoch_number + 1))
+        
+        avg_best_vloss = np.inf
+        best_model = copy.deepcopy(self.model)
+        
+        for epoch in tqdm(range(EPOCHS)):
 
             self.model.train(True)
             avg_loss = self.train_one_epoch()
@@ -248,8 +263,16 @@ class TrainCombined():
                 
                 total_running_loss_v += total_loss_v.item()
 
-            print('END LOSS \t train {} valid {}'.format(
-                round(avg_loss, 3), round(total_running_loss_v/n_batches, 3)))
+            if epoch_number == 0 or (epoch_number+1)%1 == 0: 
+                print('------------------EPOCH {}------------------'.format(
+                    epoch_number + 1))
+                print('END LOSS \t train {} valid {}'.format(
+                    round(avg_loss, 3), round(total_running_loss_v/n_batches, 3)))
 
-
+            if  total_running_loss_v/n_batches < avg_best_vloss:
+                avg_best_vloss = total_running_loss_v/n_batches
+                best_model=copy.deepcopy(self.model)
+                
             epoch_number += 1
+            
+        return best_model

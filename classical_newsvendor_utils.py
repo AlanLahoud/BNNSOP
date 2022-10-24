@@ -31,7 +31,7 @@ class ClassicalNewsvendor():
     def compute_norm_regret_from_costs(self, cost_pred, cost_best):
         regret =  cost_pred - cost_best
         #norm_regret = regret/cost_best
-        return regret/10000000
+        return regret/10000
 
     def compute_norm_regret(self, X_val, y_val, model, M):
         if model.output_type_dist:
@@ -53,19 +53,13 @@ class ClassicalNewsvendor():
 
 
     def compute_norm_regret_from_preds(self, X_val, y_val, Y_pred, M, method_name):
-        #if method_name=='ann':
-        #    z_pred = self.get_argmins_from_value(Y_pred[0,:])
-        #else:
-
         z_pred = self.get_argmins_from_dist(Y_pred)
-
         z_best = self.get_argmins_from_value(y_val[:,0])
 
         cost_pred = self.cost_sum(z_pred, y_val[:,0])
         cost_best = self.cost_sum(z_best, y_val[:,0])
 
         nr = self.compute_norm_regret_from_costs(cost_pred, cost_best)
-
         return nr
     
     
