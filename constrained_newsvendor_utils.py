@@ -1,8 +1,6 @@
 import torch
 from qpth.qp import QPFunction
 
-import pdb
-
 
 class SolveConstrainedNewsvendor():
     def __init__(self, params_t, n_samples, dev):
@@ -146,20 +144,17 @@ class SolveConstrainedNewsvendor():
         return y_pred
 
     def calc_f_por_item(self, y_pred, y):
-        pdb.set_trace()
         y_pred = self.reshape_outcomes(y_pred) 
         z_star = self.forward(y_pred)
         f_per_item = self.cost_per_item(z_star, y)
         return f_per_item
 
     def calc_f_per_day(self, y_pred, y):
-        pdb.set_trace()
         f_per_item = self.calc_f_por_item(y_pred, y)
         f = torch.sum(f_per_item, 1)
         return f
 
     def cost_fn(self, y_pred, y):
-        pdb.set_trace()
         f = self.calc_f_per_day(y_pred, y)
         f_total = torch.mean(f)
         return f_total
