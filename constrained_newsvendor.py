@@ -59,6 +59,10 @@ def run_constrained_newsvendor(
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 150  # Epochs on training
+    
+    if method_learning == 'combined':
+        BATCH_SIZE_LOADER = 128 # Standard batch size
+        EPOCHS = 80  # Epochs on training
 
 
 
