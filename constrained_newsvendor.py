@@ -134,7 +134,7 @@ def run_constrained_newsvendor(
 
     # Construct the solver
     op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
-    op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M_SAMPLES, dev)
+    op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, N_SAMPLES, dev)
 
     if not aleat_bool and method_name=='ann':
         op_solver_dist = op_solver
@@ -199,6 +199,12 @@ def run_constrained_newsvendor(
     ##################################################################
     ##### Solving the Optimization Problem ###########################
     ##################################################################
+    
+    # Construct the solver again for the optimization part
+    op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
+    op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M_SAMPLES, dev)
+    if not aleat_bool and method_name=='ann':
+        op_solver_dist = op_solver
 
     n_batches = int(np.ceil(
         Y_pred.shape[1]/BATCH_SIZE_LOADER))
