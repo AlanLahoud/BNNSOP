@@ -111,8 +111,8 @@ def run_constrained_newsvendor(
     X_test, Y_test_original = data_generator.data_4to8(
         N_test, noise_level=nl, 
         uniform_input_space=False)
-    X_test = torch.tensor(X_test, dtype=torch.float32)
-    Y_test_original = torch.tensor(Y_test_original, dtype=torch.float32)
+    X_test = torch.tensor(X_test, dtype=torch.float32).to(dev)
+    Y_test_original = torch.tensor(Y_test_original, dtype=torch.float32).to(dev)
 
     input_size = X.shape[1]
     output_size = Y.shape[1]
