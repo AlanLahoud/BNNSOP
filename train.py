@@ -202,7 +202,7 @@ class TrainCombined():
                     y_preds.size(), device = self.dev)
     
             if self.bnn:
-                y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
+                #y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 total_loss = self.end_loss_dist(y_preds, y_batch)
 
             else:
