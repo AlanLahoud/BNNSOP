@@ -85,10 +85,14 @@ def run_constrained_newsvendor(
     X = torch.tensor(X, dtype=torch.float32)
     Y = torch.tensor(Y, dtype=torch.float32)
 
+    cpu_count = mp.cpu_count()
+    if dev == torch.device('cuda'):
+        cpu_count = 1
+        
     data_train = data_generator.ArtificialDataset(X, Y)
     training_loader = torch.utils.data.DataLoader(
         data_train, batch_size=BATCH_SIZE_LOADER,
-        shuffle=False, num_workers=mp.cpu_count())
+        shuffle=False, num_workers=cpu_count)
 
     X_val, Y_val_original = data_generator.data_4to8(
         N_valid, noise_level=nl, 
@@ -101,7 +105,7 @@ def run_constrained_newsvendor(
     data_valid = data_generator.ArtificialDataset(X_val, Y_val)
     validation_loader = torch.utils.data.DataLoader(
         data_valid, batch_size=BATCH_SIZE_LOADER,
-        shuffle=False, num_workers=mp.cpu_count())
+        shuffle=False, num_workers=cpu_count)
 
     X_test, Y_test_original = data_generator.data_4to8(
         N_test, noise_level=nl, 
