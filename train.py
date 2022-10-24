@@ -4,8 +4,6 @@ import numpy as np
 import math
 from tqdm import tqdm
 import copy
- 
-
 
 class TrainDecoupled():
     
@@ -262,6 +260,7 @@ class TrainCombined():
                     total_loss_v = self.end_loss(y_val_preds, y_val_batch)
                 
                 total_running_loss_v += total_loss_v.item()
+                  
 
             if epoch_number == 0 or (epoch_number+1)%10 == 0: 
                 print('------------------EPOCH {}------------------'.format(
