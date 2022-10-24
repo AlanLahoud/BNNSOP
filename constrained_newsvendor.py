@@ -58,7 +58,7 @@ def run_constrained_newsvendor(
     N_test = 2000
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 15  # Epochs on training
+    EPOCHS = 150  # Epochs on training
 
 
 

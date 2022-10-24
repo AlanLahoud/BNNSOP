@@ -263,7 +263,7 @@ class TrainCombined():
                 
                 total_running_loss_v += total_loss_v.item()
 
-            if epoch_number == 0 or (epoch_number+1)%1 == 0: 
+            if epoch_number == 0 or (epoch_number+1)%10 == 0: 
                 print('------------------EPOCH {}------------------'.format(
                     epoch_number + 1))
                 print('END LOSS \t train {} valid {}'.format(
