@@ -206,7 +206,7 @@ def run_classic_newsvendor(
     
     print('Results for seed = ', seed_number)
     print('MSE loss: ', round(mse_loss_result, 5))
-    print('END loss: ', round(dict_results['0.1'], 5))#only for q=0.1
+    print('REGRET: ', round(dict_results['0.1'], 5))#only for q=0.1
 
     return model_used, model_name, dict_results, mse_loss_result
     
@@ -243,7 +243,7 @@ if __name__ == '__main__':
         )
         
         df_results = pd.DataFrame.from_dict(
-            dict_results, orient='index', columns=[f'NR_{seed_number}'])
+            dict_results, orient='index', columns=[f'REGRET_{seed_number}'])
         df_results[f'MSE_{seed_number}'] = mse_loss_result
         
         df_total = pd.concat([df_total, df_results], axis=1)
@@ -258,7 +258,7 @@ if __name__ == '__main__':
          
 
     cols_mse = [c for c in df_total.columns.tolist() if 'MSE' in c]
-    cols_nr = [c for c in df_total.columns.tolist() if 'NR' in c]
+    cols_nr = [c for c in df_total.columns.tolist() if 'REGRET' in c]
     
     print('---------------------------------------------------')
     print('-----------------Results---------------------------')
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     
     nr01_mean = df_total[cols_nr].mean(axis=1).loc['0.1']
     nr01_std = df_total[cols_nr].std(axis=1).loc['0.1']
-    print('NR 0.1: ', round(nr01_mean, 5), '(', round(nr01_std, 5), ')')
+    print('REGRET 0.1: ', round(nr01_mean, 5), '(', round(nr01_std, 5), ')')
     
 
     df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')

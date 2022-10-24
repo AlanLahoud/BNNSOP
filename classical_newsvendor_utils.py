@@ -26,12 +26,12 @@ class ClassicalNewsvendor():
         return self.cs*torch.maximum(demand_true - order, torch.zeros_like(demand_true)) + self.ce*torch.maximum(order - demand_true, torch.zeros_like(demand_true))
 
     def cost_sum(self, order, demand_true):
-        return self.cost_per_instance(order, demand_true).sum()
+        return self.cost_per_instance(order, demand_true).mean()
 
     def compute_norm_regret_from_costs(self, cost_pred, cost_best):
         regret =  cost_pred - cost_best
         #norm_regret = regret/cost_best
-        return regret/10000
+        return regret
 
     def compute_norm_regret(self, X_val, y_val, model, M):
         if model.output_type_dist:
