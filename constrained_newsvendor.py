@@ -87,6 +87,7 @@ def run_constrained_newsvendor(
 
     cpu_count = mp.cpu_count()
     if dev == torch.device('cuda'):
+        print('Cuda found')
         cpu_count = 1
         
     data_train = data_generator.ArtificialDataset(X, Y)
