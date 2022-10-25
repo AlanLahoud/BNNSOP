@@ -207,6 +207,7 @@ def run_constrained_newsvendor(
     if not aleat_bool and method_name=='ann':
         op_solver_dist = op_solver
 
+    BATCH_SIZE_LOADER = 1
     n_batches = int(np.ceil(
         Y_pred.shape[1]/BATCH_SIZE_LOADER))
     f_total = 0
