@@ -172,6 +172,8 @@ class TrainCombined():
         self.aleat_bool = aleat_bool
         self.training_loader = training_loader
         self.scaler = scaler
+        self.scaler_mean = torch.tensor(self.scaler.mean_, device=dev)
+        self.scaler_std = torch.tensor(self.scaler.scale_, device=dev)
         self.validation_loader = validation_loader
         self.bnn = bnn
         self.end_loss = OP.end_loss
@@ -180,8 +182,7 @@ class TrainCombined():
        
 
     def inverse_transform(self, inp):
-        return inp*torch.tensor(self.scaler.scale_) \
-                + torch.tensor(self.scaler.mean_)
+        return inp*self.scaler_std + self.scaler_mean
        
     def train_one_epoch(self):
 
