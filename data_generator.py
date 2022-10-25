@@ -59,7 +59,7 @@ def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False
 
 
 
-def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False):
+def data_4to6(N, noise_level=1, seed_number=42, uniform_input_space=False):
 
     np.random.seed(seed_number)
     
@@ -82,8 +82,8 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False):
     
     y5_perfect = 5 + y1_perfect + y2_perfect
     y6_perfect = 5 + y2_perfect + y3_perfect
-    y7_perfect = 5 + y3_perfect + y4_perfect
-    y8_perfect = 5 + y4_perfect + y1_perfect
+    #y7_perfect = 5 + y3_perfect + y4_perfect
+    #y8_perfect = 5 + y4_perfect + y1_perfect
 
     n_gaussian_1 = np.random.normal(1, noise_level, N)
     n_gaussian_2 = np.random.normal(1, 0.5*noise_level, N)
@@ -107,10 +107,11 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False):
     
     y5 = np.maximum(y5_perfect + n_multimodal_1, 0)
     y6 = np.maximum(y6_perfect + n_gaussian_1, 0)
-    y7 = np.maximum(y7_perfect + n_gaussian_2, 0)
-    y8 = np.maximum(y8_perfect + n_poisson_2, 0)
+    #y7 = np.maximum(y7_perfect + n_gaussian_2, 0)
+    #y8 = np.maximum(y8_perfect + n_poisson_2, 0)
 
     X = np.vstack((x1, x2, x3, x4)).T.round(3)
-    Y = np.vstack((y1, y2, y3, y4, y5, y6, y7, y8)).T.round(3)
+    #Y = np.vstack((y1, y2, y3, y4, y5, y6, y7, y8)).T.round(3)
+    Y = np.vstack((y1, y2, y3, y4, y5, y6)).T.round(3)
     
     return X, Y
