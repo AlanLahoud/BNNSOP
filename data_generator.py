@@ -59,7 +59,7 @@ def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False
 
 
 
-def data_4to6(N, noise_level=1, seed_number=42, uniform_input_space=False):
+def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False):
 
     np.random.seed(seed_number)
     
