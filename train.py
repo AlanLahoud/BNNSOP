@@ -180,8 +180,8 @@ class TrainCombined():
        
 
     def inverse_transform(self, inp):
-        return inp*torch.tensor(self.scaler.scale_.item()) \
-                + torch.tensor(self.scaler.mean_.item())
+        return inp*torch.tensor(self.scaler.scale_) \
+                + torch.tensor(self.scaler.mean_)
        
     def train_one_epoch(self):
 
