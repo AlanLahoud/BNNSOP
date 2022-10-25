@@ -90,8 +90,8 @@ def run_constrained_newsvendor(
     def inverse_transform(yy):
         return yy*tstd + tmean
 
-    #Y = scaler.transform(Y_original).copy()
-    Y = Y_original
+    Y = scaler.transform(Y_original).copy()
+    #Y = Y_original
     X = torch.tensor(X, dtype=torch.float32)
     Y = torch.tensor(Y, dtype=torch.float32)
 
@@ -108,8 +108,8 @@ def run_constrained_newsvendor(
     X_val, Y_val_original = data_generator.data_4to8(
         N_valid, noise_level=nl, 
         uniform_input_space=False)
-    #Y_val = scaler.transform(Y_val_original).copy()
-    Y_val = Y_val_original
+    Y_val = scaler.transform(Y_val_original).copy()
+    #Y_val = Y_val_original
     X_val = torch.tensor(X_val, dtype=torch.float32)
     Y_val_original = torch.tensor(Y_val_original, dtype=torch.float32)
     Y_val = torch.tensor(Y_val, dtype=torch.float32)
@@ -174,6 +174,7 @@ def run_constrained_newsvendor(
                         opt=opt_h,
                         aleat_bool=aleat_bool,
                         training_loader=training_loader,
+                        scaler=scaler,
                         validation_loader=validation_loader,
                         OP=op_solver_dist,
                         dev=dev
@@ -188,7 +189,7 @@ def run_constrained_newsvendor(
 
     model_used.update_n_samples(n_samples=M_SAMPLES)
     Y_pred = model_used.forward_dist(X_test, aleat_bool)
-    #Y_pred = inverse_transform(Y_pred)
+    Y_pred = inverse_transform(Y_pred)
 
     mse_loss = nn.MSELoss()
     mse_loss_result = mse_loss(Y_pred.mean(axis=0), Y_test_original).item()
