@@ -166,18 +166,23 @@ class TrainDecoupled():
             
 class TrainCombined():
     
-    def __init__(self, bnn, model, opt, aleat_bool, training_loader, validation_loader, OP, dev):
+    def __init__(self, bnn, model, opt, aleat_bool, training_loader, scaler, validation_loader, OP, dev):
         self.model = model
         self.opt = opt
         self.aleat_bool = aleat_bool
         self.training_loader = training_loader
+        self.scaler = scaler
         self.validation_loader = validation_loader
         self.bnn = bnn
         self.end_loss = OP.end_loss
         self.end_loss_dist = OP.end_loss_dist
         self.dev = dev
        
-   
+
+    def inverse_transform(self, inp):
+        return inp*torch.tensor(self.scaler.scale_.item()) \
+                + torch.tensor(self.scaler.mean_.item())
+       
     def train_one_epoch(self):
 
         n = len(self.training_loader.dataset)
@@ -201,8 +206,10 @@ class TrainCombined():
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
     
+            y_preds = self.inverse_transform(y_preds)
+            y_batch = self.inverse_transform(y_batch)
             if self.bnn:
-                #y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
+                #y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)                
                 total_loss = self.end_loss_dist(y_preds, y_batch)
 
             else:
@@ -252,6 +259,8 @@ class TrainCombined():
                         torch.exp(rho_val_preds))*torch.randn(
                         y_val_preds.size(), device = self.dev)
 
+                y_val_preds = self.inverse_transform(y_val_preds)
+                y_val_batch = self.inverse_transform(y_val_batch)
                 if self.bnn:
                     #y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
                     total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)

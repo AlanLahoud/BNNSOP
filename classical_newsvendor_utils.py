@@ -61,8 +61,7 @@ class ClassicalNewsvendor():
 
         nr = self.compute_norm_regret_from_costs(cost_pred, cost_best)
         return nr
-    
-    
+        
     def end_loss(self, y_pred, y_true):
         z_pred = self.get_argmins_from_value(y_pred)
         end_loss = self.cost_sum(z_pred, y_true)

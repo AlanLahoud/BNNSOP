@@ -101,16 +101,20 @@ class VariationalNet(nn.Module):
             + (hl_sizes[1]+1)*hl_sizes[1]
             + 2*(hl_sizes[1]+1)*output_size
         )
+
     
     def forward(self, x):
         x = torch.unsqueeze(x, 0)
         x = x.expand((self.n_samples, x.shape[1], x.shape[2]))
         x = self.linear1(x)
         x = self.act1(x)
+
         x = self.linear2(x)
         x = self.act1(x)
+
         x = self.linear3(x)
         x = self.act1(x)
+
         y_avg = self.linear4(x)
         rho = self.linear4_2(x)
         return y_avg, rho

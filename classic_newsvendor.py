@@ -99,8 +99,8 @@ def run_classic_newsvendor(
     def inverse_transform(yy):
         return yy*tstd + tmean
 
-    #y = scaler.transform(y_original).copy()
-    y = y_original
+    y = scaler.transform(y_original).copy()
+    #y = y_original
     X = torch.tensor(X, dtype=torch.float32)
     y = torch.tensor(y, dtype=torch.float32)
 
@@ -112,8 +112,8 @@ def run_classic_newsvendor(
     X_val, y_val_original = data_generator.data_1to1(
         N_valid, noise_level=1, noise_type = noise_type, 
         uniform_input_space=False)
-    #y_val = scaler.transform(y_val_original).copy()
-    y_val = y_val_original
+    y_val = scaler.transform(y_val_original).copy()
+    #y_val = y_val_original
     X_val = torch.tensor(X_val, dtype=torch.float32)
     y_val_original = torch.tensor(y_val_original, dtype=torch.float32)
     y_val = torch.tensor(y_val, dtype=torch.float32)
@@ -169,6 +169,7 @@ def run_classic_newsvendor(
                         opt=opt_h,
                         aleat_bool=aleat_bool,
                         training_loader=training_loader,
+                        scaler=scaler,
                         validation_loader=validation_loader,
                         OP=cn,
                         dev=dev
@@ -184,7 +185,7 @@ def run_classic_newsvendor(
     M = M_SAMPLES
     model_used.update_n_samples(n_samples=M)
     y_pred = model_used.forward_dist(X_test, aleat_bool)[:,:,0]
-    #y_pred = inverse_transform(y_pred)
+    y_pred = inverse_transform(y_pred)
 
 
     mse_loss = nn.MSELoss()
