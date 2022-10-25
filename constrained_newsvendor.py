@@ -53,9 +53,9 @@ def run_constrained_newsvendor(
         model_name += '_'+sys.argv[i]
     model_name += '_'+ str(seed_number)
         
-    N_train = 4000
-    N_valid = 2000
-    N_test = 2000
+    N_train = 3000
+    N_valid = 1500
+    N_test = 1500
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 150  # Epochs on training
@@ -63,7 +63,7 @@ def run_constrained_newsvendor(
     lr = 0.001
     
     if dev == torch.device('cuda'):
-        BATCH_SIZE_LOADER = 128
+        BATCH_SIZE_LOADER = 64
     
     if method_learning == 'combined':
         EPOCHS = 40
@@ -207,7 +207,7 @@ def run_constrained_newsvendor(
     if not aleat_bool and method_name=='ann':
         op_solver_dist = op_solver
 
-    BATCH_SIZE_LOADER = 1
+    BATCH_SIZE_LOADER = 4
     n_batches = int(np.ceil(
         Y_pred.shape[1]/BATCH_SIZE_LOADER))
     f_total = 0
