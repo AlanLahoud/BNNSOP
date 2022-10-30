@@ -11,6 +11,17 @@ class SolveConstrainedNewsvendor():
         n_items = len(params_t['c'])
         self.n_items = n_items  
         self.n_samples = n_samples
+        
+        self.params_q = params_t['q'].to(self.dev)
+        self.params_qs = params_t['qs'].to(self.dev)
+        self.params_qw = params_t['qw'].to(self.dev)
+        
+        self.params_c = params_t['c'].to(self.dev)
+        self.params_cs = params_t['cs'].to(self.dev)
+        self.params_cw = params_t['cw'].to(self.dev)
+        
+        self.zeros_params = torch.zeros((self.n_items)).to(self.dev)
+        
             
         # Torch parameters for KKT         
         ident = torch.eye(n_items).to(self.dev)
@@ -86,6 +97,8 @@ class SolveConstrainedNewsvendor():
                                           torch.zeros(n_items*n_samples), 
                                           torch.zeros(n_items*n_samples))).to(self.dev)
         
+        self.e = torch.DoubleTensor().to(self.dev)
+        
         
         
     def forward(self, y):
@@ -115,26 +128,20 @@ class SolveConstrainedNewsvendor():
             batch_size, self.determ_bound.shape[0])
         bound = torch.hstack((uncert_bound, determ_bound))     
         
-        e = torch.DoubleTensor().to(self.dev)
-        
         argmin = QPFunction(verbose=-1)\
             (Q.double(), lin.double(), ineqs.double(), 
-             bound.double(), e, e).double()
+             bound.double(), self.e, self.e).double()
             
         return argmin[:,:self.n_items]
 
     
     def cost_per_item(self, Z, Y):
-        return ( self.params_t['q'].to(self.dev)*Z.to(self.dev)**2 \
-        + self.params_t['qs'].to(self.dev)\
-                *(torch.max(torch.zeros((self.n_items)).to(self.dev),Y.to(self.dev)-Z.to(self.dev)))**2 \
-        + self.params_t['qw'].to(self.dev)\
-                *(torch.max(torch.zeros((self.n_items)).to(self.dev),Z.to(self.dev)-Y.to(self.dev)))**2 \
-        + self.params_t['c'].to(self.dev)*Z.to(self.dev) \
-        + self.params_t['cs'].to(self.dev)\
-                *torch.max(torch.zeros((self.n_items)).to(self.dev),Y.to(self.dev)-Z.to(self.dev)) \
-        + self.params_t['cw'].to(self.dev)\
-                *torch.max(torch.zeros((self.n_items)).to(self.dev),Z.to(self.dev)-Y.to(self.dev)))
+        return ( self.params_q*Z**2 \
+        + self.params_qs*(torch.max(self.zeros_params, Y-Z))**2 \
+        + self.params_qw*(torch.max(self.zeros_params, Z-Y))**2 \
+        + self.params_c*Z \
+        + self.params_cs*torch.max(self.zeros_params, Y-Z) \
+        + self.params_cw*torch.max(self.zeros_params, Z-Y))
 
     def reshape_outcomes(self, y_pred):
         n_samples = y_pred.shape[0]
@@ -160,6 +167,7 @@ class SolveConstrainedNewsvendor():
         return f_total
     
     def end_loss(self, y_pred, y):
+        y_pred = y_pred.unsqueeze(0)
         f_total = self.cost_fn(y_pred, y)
         return f_total
     

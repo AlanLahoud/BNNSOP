@@ -30,7 +30,7 @@ class TrainDecoupled():
         n_batches = len(self.training_loader)
                 
         for i, data in enumerate(self.training_loader):
-
+            
             x_batch, y_batch = data
             x_batch = x_batch.to(self.dev)
             y_batch = y_batch.to(self.dev)
@@ -135,7 +135,7 @@ class TrainDecoupled():
                 
                 loss_data_ = loss_data_.mean(axis=-1) #through output dimension
 
-                loss_data_running_loss_v += loss_data_
+                loss_data_running_loss_v += loss_data_.detach()
 
                 
             avg_vloss_data = (loss_data_running_loss_v/n_batches).item()
@@ -143,7 +143,7 @@ class TrainDecoupled():
 
             avg_vloss = avg_vloss_data + avg_vklloss
 
-            if epoch_number == 0 or (epoch_number+1)%10 == 0:           
+            if epoch_number == 0 or (epoch_number+1)%1 == 0:           
                 print('------------------EPOCH {}------------------'.format(
                     epoch_number + 1))
 
@@ -193,7 +193,7 @@ class TrainCombined():
 
         
         for i, data in enumerate(self.training_loader):
-
+            
             x_batch, y_batch = data
             x_batch = x_batch.to(self.dev)
             y_batch = y_batch.to(self.dev)
@@ -269,10 +269,10 @@ class TrainCombined():
                 else:
                     total_loss_v = self.end_loss(y_val_preds, y_val_batch)
                 
-                total_running_loss_v += total_loss_v.item()
+                total_running_loss_v += total_loss_v.detach().item()
                   
 
-            if epoch_number == 0 or (epoch_number+1)%10 == 0: 
+            if epoch_number == 0 or (epoch_number+1)%1 == 0: 
                 print('------------------EPOCH {}------------------'.format(
                     epoch_number + 1))
                 print('END LOSS \t train {} valid {}'.format(

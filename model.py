@@ -2,6 +2,8 @@ import math
 import torch
 import torch.nn as nn
 
+import pdb
+
 class VariationalLayer(nn.Module):
     def __init__(self, 
                  input_size, output_size,
@@ -22,7 +24,7 @@ class VariationalLayer(nn.Module):
         # Defining Variational class (Gaussian class)
         self.theta_mu = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
-                -0.5, 0.5)).float()
+                -0.05, 0.05)).float()
         self.theta_rho = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
                 -5,-4)).float()
@@ -277,8 +279,70 @@ class WeakStandardNet(nn.Module):
         return y_dist
         
         
-       
-   
+
+class StrongVariationalNet(nn.Module):
+    def __init__(self, n_samples, input_size, output_size, plv,dev):
+        super().__init__()
+        self.output_type_dist = True
+        self.n_samples = n_samples
+        self.act1 = nn.ReLU()
+        # Hidden layer sizes, if you add a layer you have to modify the code below
+        hl_sizes = [1024, 512] 
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev)
+        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev)
+        self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
+        self.neurons = (
+            (input_size+1)*hl_sizes[0] 
+            + (hl_sizes[0]+1)*hl_sizes[1]
+            + (hl_sizes[1]+1)*hl_sizes[1]
+            + 2*(hl_sizes[1]+1)*output_size
+        )
+
+    
+    def forward(self, x):
+        x = torch.unsqueeze(x, 0)
+        x = x.expand((self.n_samples, x.shape[1], x.shape[2]))
+        x = self.linear1(x)
+        x = self.act1(x)
+
+        x = self.linear2(x)
+        x = self.act1(x)
+
+        x = self.linear3(x)
+        x = self.act1(x)
+
+        y_avg = self.linear4(x)
+        rho = self.linear4_2(x)
+        return y_avg, rho
+    
+    def forward_dist(self, x, aleat_bool):
+        # Considering epistemic (if BNN) and aleatoric uncertainty
+        if aleat_bool:
+            y_dist = torch.normal(self(x)[0], torch.sqrt(torch.exp(self(x)[1])))
+        else:
+            y_dist = self(x)[0]
+            
+        return y_dist
+    
+    def kl_divergence_NN(self):
+        kl = (
+            self.linear1.kl_divergence_layer() 
+            + self.linear2.kl_divergence_layer()
+            + self.linear3.kl_divergence_layer()
+            + self.linear4.kl_divergence_layer()
+            + self.linear4_2.kl_divergence_layer()
+        )/self.neurons
+        return kl
+    
+    def update_n_samples(self, n_samples):
+        self.n_samples = n_samples
+        self.linear1.n_samples = n_samples
+        self.linear2.n_samples = n_samples
+        self.linear3.n_samples = n_samples
+        self.linear4.n_samples = n_samples
+        self.linear4_2.n_samples = n_samples   
         
         
         
