@@ -20,7 +20,7 @@ import joblib
 
 # Utils
 import data_generator
-from model import VariationalLayer, VariationalNet, StandardNet
+from model import VariationalLayer, VariationalNet, StandardNet, WeakVariationalNet, WeakStandardNet
 from train import TrainDecoupled, TrainCombined
 from classical_newsvendor_utils import ClassicalNewsvendor
 
@@ -137,12 +137,16 @@ def run_classic_newsvendor(
     ##################################################################
     ##### Model and Training #########################################
     ##################################################################
-
+    
+    #model_name = 'weak_' + model_name
     if method_name == 'bnn':
+        #h = WeakVariationalNet(
+        #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
         h = VariationalNet(
             N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
 
     elif method_name == 'ann':
+        #h = WeakStandardNet(input_size, output_size).to(dev)
         h = StandardNet(input_size, output_size).to(dev)
         K = 0
 
