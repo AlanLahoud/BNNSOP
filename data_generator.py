@@ -18,44 +18,52 @@ class ArtificialDataset(torch.utils.data.Dataset):
         return X_i, y_i
 
 
-def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False):
+def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False, add_yfair=False):
     
     if uniform_input_space:
         X = np.arange(-4, 4, 8/N)
     else:
         X = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(3, 1, N-N//2)))
     
-    y_perfect = 5 + np.abs(np.abs(6*X)*np.sin(X) + np.sin(6*X)*(0.5*X))
-
-    # Noise
-    if noise_type == 'gaussian':
-        n = np.where(X>3, 0, np.random.normal(0, noise_level, N))
-        y = y_perfect + n*np.sin(X)*np.abs(X)*2
-    elif noise_type == 'multimodal':
-        n = np.hstack(
-            (np.random.normal(6, noise_level, N//4), 
-             np.random.normal(2, noise_level, N-N//4))
-        )
-        np.random.shuffle(n)
-        n = np.where(X<3, n, 0)
-        y = y_perfect + 0.5*n*np.sin(X)*np.abs(X)*2    
-    elif noise_type == 'poisson':
-        n = np.random.poisson(lam=5*noise_level, size=N)    
-        np.random.shuffle(n)
-        n = np.where(X<3, n, 0)
-        y = y_perfect + 0.5*n*np.sin(X)*np.abs(X)*2      
-    else:
-        print('noise_type not considered')
-        exit()
+    def gen_output(X):
+        y_perfect = 5 + np.abs(np.abs(6*X)*np.sin(X) + np.sin(6*X)*(0.5*X))
+        # Noise
+        if noise_type == 'gaussian':
+            n = np.where(X>3, 0, np.random.normal(0, noise_level, N))
+            y = y_perfect + n*np.sin(X)*np.abs(X)*2
+        elif noise_type == 'multimodal':
+            n = np.hstack(
+                (np.random.normal(6, noise_level, N//4), 
+                 np.random.normal(2, noise_level, N-N//4))
+            )
+            np.random.shuffle(n)
+            n = np.where(X<3, n, 0)
+            y = y_perfect + 0.5*n*np.sin(X)*np.abs(X)*2    
+        elif noise_type == 'poisson':
+            n = np.random.poisson(lam=5*noise_level, size=N)    
+            np.random.shuffle(n)
+            n = np.where(X<3, n, 0)
+            y = y_perfect + 0.5*n*np.sin(X)*np.abs(X)*2      
+        else:
+            print('noise_type not considered')
+            exit()    
+        y = np.where(y<0, 0, y)
+        y = np.expand_dims(y, axis=1)
+        return y
     
-    y = np.where(y<0, 0, y)
-    #X = np.expand_dims(preprocessing.scale(X), axis=1)
-    #y = np.expand_dims(preprocessing.scale(y), axis=1)
+    y = gen_output(X)
+    
+    if add_yfair:
+        y_noisy = np.zeros((1000, N, 1))
+        for i in range(0, 1000):
+            y_noisy[i,:,:] = gen_output(X)
+        y_noisy = torch.tensor(y_noisy, dtype=torch.float32)
+    else:
+        y_noisy = y
     
     X = np.expand_dims(X, axis=1)
-    y = np.expand_dims(y, axis=1)
     
-    return X, y
+    return X, y, y_noisy
 
 
 

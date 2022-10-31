@@ -52,15 +52,18 @@ class ClassicalNewsvendor():
         return nr
 
 
-    def compute_norm_regret_from_preds(self, X_val, y_val, Y_pred, M, method_name):
+    def compute_norm_regret_from_preds(self, y_val, Y_pred, Y_noisy):
         z_pred = self.get_argmins_from_dist(Y_pred)
+        z_fair = self.get_argmins_from_dist(Y_noisy)
         z_best = self.get_argmins_from_value(y_val[:,0])
 
         cost_pred = self.cost_sum(z_pred, y_val[:,0])
+        cost_fair = self.cost_sum(z_fair, y_val[:,0])
         cost_best = self.cost_sum(z_best, y_val[:,0])
 
-        nr = self.compute_norm_regret_from_costs(cost_pred, cost_best)
-        return nr
+        reg = self.compute_norm_regret_from_costs(cost_pred, cost_best)
+        freg = self.compute_norm_regret_from_costs(cost_pred, cost_fair)
+        return reg, freg
         
     def end_loss(self, y_pred, y_true):
         z_pred = self.get_argmins_from_value(y_pred)

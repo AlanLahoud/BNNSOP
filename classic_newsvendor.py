@@ -49,7 +49,7 @@ def run_classic_newsvendor(
     assert (noise_type in ['gaussian','multimodal'])
     assert (aleat_bool in [True, False])
     assert (N_SAMPLES>=1 and N_SAMPLES<9999)
-    assert (M_SAMPLES>=1 and M_SAMPLES<9999)
+    #assert (M_SAMPLES>=1 and M_SAMPLES<9999)
 
     bnn = False 
     if method_name == 'bnn':
@@ -78,14 +78,14 @@ def run_classic_newsvendor(
         model_name = model_name \
         + f'_q{(cost_shortage)/(cost_shortage+cost_excess)}'
         cn = ClassicalNewsvendor(cost_shortage, cost_excess)
-        lr = 0.0003
+        lr = 0.001
 
 
     ##################################################################
     ##### Data #######################################################
     ##################################################################
 
-    X, y_original = data_generator.data_1to1(
+    X, y_original, _ = data_generator.data_1to1(
         N_train, noise_level=1, noise_type = noise_type,
         uniform_input_space=False)
 
@@ -109,7 +109,7 @@ def run_classic_newsvendor(
         data_train, batch_size=BATCH_SIZE_LOADER,
         shuffle=False, num_workers=mp.cpu_count())
 
-    X_val, y_val_original = data_generator.data_1to1(
+    X_val, y_val_original, _ = data_generator.data_1to1(
         N_valid, noise_level=1, noise_type = noise_type, 
         uniform_input_space=False)
     y_val = scaler.transform(y_val_original).copy()
@@ -123,12 +123,14 @@ def run_classic_newsvendor(
         data_valid, batch_size=BATCH_SIZE_LOADER,
         shuffle=False, num_workers=mp.cpu_count())
 
-    X_test, y_test_original = data_generator.data_1to1(
+    X_test, y_test_original, y_true_noisy = data_generator.data_1to1(
         N_test, noise_level=1, noise_type = noise_type, 
-        uniform_input_space=False)
+        uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     y_test_original = torch.tensor(y_test_original, dtype=torch.float32)
-     
+    
+ 
+        
     input_size = X.shape[1]
     output_size = y.shape[1]
 
@@ -150,7 +152,7 @@ def run_classic_newsvendor(
         h = StandardNet(input_size, output_size).to(dev)
         K = 0
 
-    opt_h = torch.optim.Adam(h.parameters(), lr=0.0007)
+    opt_h = torch.optim.Adam(h.parameters(), lr=lr)
     mse_loss = nn.MSELoss(reduction='none')
 
     if method_learning == 'decoupled':
@@ -185,38 +187,44 @@ def run_classic_newsvendor(
 
     model_used = train_NN.train(EPOCHS=EPOCHS)
 
+    mser = []
+    regr = []
+    fregr = []
+    for M in M_SAMPLES:
 
-    M = M_SAMPLES
-    model_used.update_n_samples(n_samples=M)
-    y_pred = model_used.forward_dist(X_test, aleat_bool)[:,:,0]
-    y_pred = inverse_transform(y_pred)
+        model_used.update_n_samples(n_samples=M)
+        y_pred = model_used.forward_dist(X_test, aleat_bool)[:,:,0]
+        y_pred = inverse_transform(y_pred)
 
 
-    mse_loss = nn.MSELoss()
-    mse_loss_result = mse_loss(
-        y_pred.mean(axis=0).squeeze(), 
-        y_test_original.squeeze()
-    ).item()
+        mse_loss = nn.MSELoss()
+        mse_loss_result = mse_loss(
+            y_pred.mean(axis=0).squeeze(), 
+            y_test_original.squeeze()
+        ).item()
 
-    ##################################################################
-    ##### Solving the Optimization Problem ###########################
-    ##################################################################
+        ##################################################################
+        ##### Solving the Optimization Problem ###########################
+        ##################################################################
 
-    dict_results = {}
-
-    for quantile in np.arange(0.02,1,0.02):
-        cost_excess = cost_shortage*(1-quantile)/quantile
+        cost_excess = 900 #only for q=0.1
         cn2 = ClassicalNewsvendor(cost_shortage, cost_excess)
-        dict_results[str(round(quantile, 4))] = round(
-            cn2.compute_norm_regret_from_preds(
-            X_test, y_test_original, y_pred, M, method_name).item(), 
-            3)
-    
-    print('Results for seed = ', seed_number)
-    print('MSE loss: ', round(mse_loss_result, 5))
-    print('REGRET: ', round(dict_results['0.1'], 5))#only for q=0.1
+        regret, fair_regret = cn2.compute_norm_regret_from_preds(
+                                y_test_original, y_pred, y_true_noisy.squeeze())
+        regret = round(regret.item(), 5)
+        fair_regret = round(fair_regret.item(), 5)  
 
-    return model_used, model_name, dict_results, mse_loss_result
+        print('Results for seed = ', seed_number)
+        print('Results for M = ', M)
+        print('MSE loss: ', round(mse_loss_result, 5))
+        print('REGRET: ', round(regret, 5))
+        print('FAIR REGRET: ', round(fair_regret, 5))
+        
+        mser.append(mse_loss_result)
+        regr.append(regret)
+        fregr.append(fair_regret)
+
+    return model_used, model_name, regr, fregr, mser
     
 
 if __name__ == '__main__':
@@ -227,18 +235,20 @@ if __name__ == '__main__':
         is_cuda = True
         dev = torch.device('cuda') 
     
-    assert (len(sys.argv)==8)
+    assert (len(sys.argv)==7)
     method_name = sys.argv[1] # ann or bnn
     method_learning = sys.argv[2] # decoupled or combined
     noise_type = sys.argv[3] # gaussian or multimodal
     nr_seeds = int(sys.argv[4]) # Average results through seeds
     aleat_bool = bool(int(sys.argv[5])) # Modeling aleatoric uncert
     N_SAMPLES = int(sys.argv[6])  # Sampling size while training
-    M_SAMPLES = int(sys.argv[7])  # Sampling size while optimizing
+    #M_SAMPLES = int(sys.argv[7])  # Sampling size while optimizing
+    
+    M_SAMPLES = [2, 4, 8, 16, 32, 64, 512, 4096]
     
     df_total = pd.DataFrame()
     for seed_number in range(0, nr_seeds):
-        model_used, model_name, dict_results, mse_loss_result \
+        model_used, model_name, regr, fregr, mser \
         = run_classic_newsvendor(
             method_name, 
             method_learning,
@@ -250,9 +260,12 @@ if __name__ == '__main__':
             dev
         )
         
-        df_results = pd.DataFrame.from_dict(
-            dict_results, orient='index', columns=[f'REGRET_{seed_number}'])
-        df_results[f'MSE_{seed_number}'] = mse_loss_result
+        df_results = pd.DataFrame(
+            data = {f'MSE_{seed_number}':mser,
+                    f'REGRET_{seed_number}':regr,
+                    f'FR{seed_number}':fregr
+                   }
+        )
         
         df_total = pd.concat([df_total, df_results], axis=1)
         
@@ -267,17 +280,22 @@ if __name__ == '__main__':
 
     cols_mse = [c for c in df_total.columns.tolist() if 'MSE' in c]
     cols_nr = [c for c in df_total.columns.tolist() if 'REGRET' in c]
+    cols_fnr = [c for c in df_total.columns.tolist() if 'FR' in c]
     
     print('---------------------------------------------------')
     print('-----------------Results---------------------------')
     print(f'Params: {model_name}')
-    mse_mean = df_total[cols_mse].mean(axis=1).mean()
-    mse_std = df_total[cols_mse].std(axis=1).mean()
+    mse_mean = df_total[cols_mse].mean(axis=1)
+    mse_std = df_total[cols_mse].std(axis=1)
     print('MSE: ', round(mse_mean, 5), '(', round(mse_std, 5), ')')
     
-    nr01_mean = df_total[cols_nr].mean(axis=1).loc['0.1']
-    nr01_std = df_total[cols_nr].std(axis=1).loc['0.1']
+    nr01_mean = df_total[cols_nr].mean(axis=1)
+    nr01_std = df_total[cols_nr].std(axis=1)
     print('REGRET 0.1: ', round(nr01_mean, 5), '(', round(nr01_std, 5), ')')
+    
+    fnr01_mean = df_total[cols_fnr].mean(axis=1)
+    fnr01_std = df_total[cols_fnr].std(axis=1)
+    print('FR 0.1: ', round(fnr01_mean, 5), '(', round(fnr01_std, 5), ')')
     
 
     df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')

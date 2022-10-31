@@ -24,7 +24,7 @@ class VariationalLayer(nn.Module):
         # Defining Variational class (Gaussian class)
         self.theta_mu = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
-                -0.05, 0.05)).float()
+                -0.2, 0.2)).float()
         self.theta_rho = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
                 -5,-4)).float()
