@@ -60,13 +60,19 @@ def run_constrained_newsvendor(
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 150  # Epochs on training
     
-    lr = 0.0002
     
     if dev == torch.device('cuda'):
         BATCH_SIZE_LOADER = 256
     
-    if method_learning == 'combined':
+    lr = 0.001
+    if method_learning == 'decoupled' and method_name == 'ann':
+        lr = 0.001
+    if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0005
+    if method_learning == 'combined' and method_name == 'ann':
+        lr = 0.0005
+    if method_learning == 'combined' and method_name == 'bnn':
+        lr = 0.0001
 
 
 
@@ -75,7 +81,7 @@ def run_constrained_newsvendor(
     ##################################################################
 
     nl=0.5
-    X, Y_original = data_generator.data_4to8(
+    X, Y_original, _ = data_generator.data_4to8(
         N_train, noise_level=nl, 
         uniform_input_space=False)
 
@@ -105,7 +111,7 @@ def run_constrained_newsvendor(
         shuffle=False, num_workers=cpu_count)
 
     
-    X_val, Y_val_original = data_generator.data_4to8(
+    X_val, Y_val_original, _ = data_generator.data_4to8(
         N_valid, noise_level=nl, 
         uniform_input_space=False)
     Y_val = scaler.transform(Y_val_original).copy()
@@ -120,15 +126,21 @@ def run_constrained_newsvendor(
         shuffle=False, num_workers=cpu_count)
 
     
-    X_test, Y_test_original = data_generator.data_4to8(
+    X_test, Y_test_original, Y_noisy = data_generator.data_4to8(
         N_test, noise_level=nl, 
-        uniform_input_space=False)
+        uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     Y_test_original = torch.tensor(Y_test_original, dtype=torch.float32)
+    Y_noisy = torch.tensor(Y_noisy, dtype=torch.float32)
 
     data_test = data_generator.ArtificialDataset(X_test, Y_test_original)
     test_loader = torch.utils.data.DataLoader(
     data_test, batch_size=64,
+    shuffle=False, num_workers=cpu_count)
+    
+    data_test_noisy = data_generator.ArtificialNoisyDataset(X_test, Y_noisy)
+    test_noisy_loader = torch.utils.data.DataLoader(
+    data_test_noisy, batch_size=64,
     shuffle=False, num_workers=cpu_count)
     
     input_size = X.shape[1]
@@ -152,16 +164,16 @@ def run_constrained_newsvendor(
     model_name = 'weak_' + model_name
     
     if method_name == 'bnn':
-        #h = StrongVariationalNet(
-        #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-        h = WeakVariationalNet(
+        h = StrongVariationalNet(
             N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-        lr = lr*10
+        #h = WeakVariationalNet(
+        #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
+        #lr = lr*10
 
     elif method_name == 'ann':
-        #h = StandardNet(input_size, output_size).to(dev)
-        h = WeakStandardNet(input_size, output_size).to(dev)
-        lr = lr*10
+        h = StandardNet(input_size, output_size).to(dev)
+        #h = WeakStandardNet(input_size, output_size).to(dev)
+        #lr = lr*10
         K = 0
 
     opt_h = torch.optim.Adam(h.parameters(), lr=lr)
@@ -205,7 +217,8 @@ def run_constrained_newsvendor(
     ##### Solving the Optimization Problem ###########################
     ##################################################################
     
-    nr_result = []
+    reg_result = []
+    freg_result = []
     mse_result = []
         
     for M in M_SAMPLES:
@@ -216,22 +229,27 @@ def run_constrained_newsvendor(
         # Construct the solver again for the optimization part
         op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
         op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev)
+        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 32, dev)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
             model_used.update_n_samples(n_samples=1)
         
         f_total = 0
+        f_total_noisy = 0
         f_total_best = 0
         mse_loss_result = 0
         n_batches = len(test_loader)
         
 
-        for i, tdata in enumerate(test_loader):
+        for i, (tdata, tndata) in enumerate(zip(test_loader, test_noisy_loader)):
             
             x_test_batch, y_test_batch = tdata
+            _, y_test_noisy_batch = tndata
+            y_test_noisy_batch = torch.permute(y_test_noisy_batch, (1,0,2))
                 
             x_test_batch = x_test_batch.to(dev)
             y_test_batch = y_test_batch.to(dev)
+            y_test_noisy_batch = y_test_noisy_batch.to(dev)
             
             y_preds = model_used.forward_dist(x_test_batch, aleat_bool)
             y_preds = inverse_transform(y_preds)
@@ -240,25 +258,30 @@ def run_constrained_newsvendor(
                 y_preds.mean(axis=0), y_test_batch)/n_batches).detach()
             
             f_total += (op_solver_dist.end_loss_dist(
-                y_preds, y_test_batch)/n_batches).detach()
+                y_preds, y_test_batch)/n_batches).detach()         
+            
+            f_total_noisy += (op_solver_dist_noisy.end_loss_dist(
+                y_test_noisy_batch, y_test_batch)/n_batches).detach()
             
             f_total_best += (op_solver.cost_fn(
                 y_test_batch.unsqueeze(0), y_test_batch)/n_batches).detach()
                         
-
-        nr = (f_total.item() - f_total_best.item())/f_total_best.item()
+        regret = f_total.item() - f_total_best.item()
+        f_regret = f_total.item() - f_total_noisy.item()
 
         print('Results for seed = ', seed_number, 'and M = ', M)
         print('MSE loss: ', round(mse_loss_result.item(), 5))
         print('END cost: ', round(f_total.item(), 5))
         print('BEST cost: ', round(f_total_best.item(), 5))
-        print('NR: ', round(nr, 5))
+        print('REGRET: ', round(regret, 5))
+        print('FAIR REGRET: ', round(f_regret, 5))
         
-        nr_result.append(nr)
         mse_result.append(mse_loss_result.item())
+        reg_result.append(regret)
+        freg_result.append(f_regret)
         
         
-    return model_used, model_name, nr_result, mse_result
+    return model_used, model_name, reg_result, freg_result, mse_result
 
 if __name__ == '__main__':
     
@@ -283,12 +306,18 @@ if __name__ == '__main__':
     mse_results_8 = []
     mse_results_4 = []
     
-    nr_results_32 = []
-    nr_results_16 = []
-    nr_results_8 = []
-    nr_results_4 = []
+    reg_results_32 = []
+    reg_results_16 = []
+    reg_results_8 = []
+    reg_results_4 = []
+    
+    freg_results_32 = []
+    freg_results_16 = []
+    freg_results_8 = []
+    freg_results_4 = []
+    
     for seed_number in range(0, nr_seeds):
-        model_used, model_name, nr_result, mse_result \
+        model_used, model_name, reg_result, freg_result, mse_result \
         = run_constrained_newsvendor(
             method_name, 
             method_learning,
@@ -303,10 +332,17 @@ if __name__ == '__main__':
         mse_results_16.append(mse_result[1])
         mse_results_8.append(mse_result[2])
         mse_results_4.append(mse_result[3])
-        nr_results_32.append(nr_result[0])
-        nr_results_16.append(nr_result[1])
-        nr_results_8.append(nr_result[2])
-        nr_results_4.append(nr_result[3])
+        
+        reg_results_32.append(reg_result[0])
+        reg_results_16.append(reg_result[1])
+        reg_results_8.append(reg_result[2])
+        reg_results_4.append(reg_result[3])
+        
+        freg_results_32.append(freg_result[0])
+        freg_results_16.append(freg_result[1])
+        freg_results_8.append(freg_result[2])
+        freg_results_4.append(freg_result[3])
+        
         
         ##########################################################
         ##### Saving model and results ###########################
@@ -319,10 +355,14 @@ if __name__ == '__main__':
         'MSE16':mse_results_16, 
         'MSE8':mse_results_8, 
         'MSE4':mse_results_4,
-        'NR32':nr_results_32,
-        'NR16':nr_results_16,
-        'NR8':nr_results_8,
-        'NR4':nr_results_4,
+        'REG32':reg_results_32,
+        'REG16':reg_results_16,
+        'REG8':reg_results_8,
+        'REG4':reg_results_4,
+        'FREG32':freg_results_32,
+        'FREG16':freg_results_16,
+        'FREG8':freg_results_8,
+        'FREG4':freg_results_4
     })
     
     mse32_avg = df_total['MSE32'].mean()
@@ -337,17 +377,29 @@ if __name__ == '__main__':
     mse4_avg = df_total['MSE4'].mean()
     mse4_std = df_total['MSE4'].std()
     
-    nr32_avg = df_total['NR32'].mean()
-    nr32_std = df_total['NR32'].std()
+    reg32_avg = df_total['REG32'].mean()
+    reg32_std = df_total['REG32'].std()
     
-    nr16_avg = df_total['NR16'].mean()
-    nr16_std = df_total['NR16'].std()
+    reg16_avg = df_total['REG16'].mean()
+    reg16_std = df_total['REG16'].std()
     
-    nr8_avg = df_total['NR8'].mean()
-    nr8_std = df_total['NR8'].std()
+    reg8_avg = df_total['REG8'].mean()
+    reg8_std = df_total['REG8'].std()
     
-    nr4_avg = df_total['NR4'].mean()
-    nr4_std = df_total['NR4'].std()
+    reg4_avg = df_total['REG4'].mean()
+    reg4_std = df_total['REG4'].std()
+    
+    freg32_avg = df_total['FREG32'].mean()
+    freg32_std = df_total['FREG32'].std()
+    
+    freg16_avg = df_total['FREG16'].mean()
+    freg16_std = df_total['FREG16'].std()
+    
+    freg8_avg = df_total['FREG8'].mean()
+    freg8_std = df_total['FREG8'].std()
+    
+    freg4_avg = df_total['FREG4'].mean()
+    freg4_std = df_total['FREG4'].std()
     
     print('---------------------------------------------------')
     print('-----------------Results---------------------------')
@@ -356,9 +408,13 @@ if __name__ == '__main__':
     print('MSE16: ', round(mse16_avg, 5), '(', round(mse16_std, 5), ')')
     print('MSE8: ', round(mse8_avg, 5), '(', round(mse8_std, 5), ')')
     print('MSE4: ', round(mse4_avg, 5), '(', round(mse4_std, 5), ')')
-    print('NR32: ', round(nr32_avg, 5), '(', round(nr32_std, 5), ')')
-    print('NR16: ', round(nr16_avg, 5), '(', round(nr16_std, 5), ')')
-    print('NR8: ', round(nr8_avg, 5), '(', round(nr8_std, 5), ')')
-    print('NR4: ', round(nr4_avg, 5), '(', round(nr4_std, 5), ')')
+    print('REG32: ', round(reg32_avg, 5), '(', round(reg32_std, 5), ')')
+    print('REG16: ', round(reg16_avg, 5), '(', round(reg16_std, 5), ')')
+    print('REG8: ', round(reg8_avg, 5), '(', round(reg8_std, 5), ')')
+    print('REG4: ', round(reg4_avg, 5), '(', round(reg4_std, 5), ')')
+    print('FREG32: ', round(freg32_avg, 5), '(', round(freg32_std, 5), ')')
+    print('FREG16: ', round(freg16_avg, 5), '(', round(freg16_std, 5), ')')
+    print('FREG8: ', round(freg8_avg, 5), '(', round(freg8_std, 5), ')')
+    print('FREG4: ', round(freg4_avg, 5), '(', round(freg4_std, 5), ')')
         
     df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')

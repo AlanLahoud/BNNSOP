@@ -8,7 +8,7 @@ class VariationalLayer(nn.Module):
     def __init__(self, 
                  input_size, output_size,
                  prior_mu, prior_rho,
-                 n_samples, dev
+                 n_samples, dev, mu_init=0.2
                 ):
         super().__init__()
         
@@ -24,7 +24,7 @@ class VariationalLayer(nn.Module):
         # Defining Variational class (Gaussian class)
         self.theta_mu = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
-                -0.2, 0.2)).float()
+                -mu_init, mu_init)).float()
         self.theta_rho = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
                 -5,-4)).float()
@@ -83,18 +83,19 @@ class VariationalLayer(nn.Module):
     
     
 class VariationalNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv,dev):
+    def __init__(self, n_samples, input_size, output_size, plv, dev):
         super().__init__()
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         # Hidden layer sizes, if you add a layer you have to modify the code below
         hl_sizes = [64, 32] 
-        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev)
-        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev)
-        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev)
-        self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
+        mu_init = 0.2
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, mu_init)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, mu_init)
+        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, mu_init)
+        self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, mu_init)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, mu_init)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
@@ -155,9 +156,10 @@ class WeakVariationalNet(nn.Module):
         self.act1 = nn.ReLU()
         # Hidden layer sizes, if you add a layer you have to modify the code below
         hl_sizes = [8] 
-        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev)
-        self.linear2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev)
-        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev)
+        mu_init=0.2
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, mu_init)
+        self.linear2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev, mu_init)
+        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev, mu_init)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + 2*(hl_sizes[0]+1)*output_size
@@ -288,11 +290,12 @@ class StrongVariationalNet(nn.Module):
         self.act1 = nn.ReLU()
         # Hidden layer sizes, if you add a layer you have to modify the code below
         hl_sizes = [1024, 512] 
-        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev)
-        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev)
-        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev)
-        self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev)
+        mu_init=0.05 # lower value otherwise it can explode
+        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, mu_init)
+        self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, mu_init)
+        self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, mu_init)
+        self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, mu_init)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, mu_init)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
