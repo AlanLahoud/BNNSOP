@@ -64,15 +64,17 @@ def run_constrained_newsvendor(
     if dev == torch.device('cuda'):
         BATCH_SIZE_LOADER = 256
     
-    lr = 0.001
+    lr = 0.0007
     if method_learning == 'decoupled' and method_name == 'ann':
-        lr = 0.001
+        lr = 0.0007
+        EPOCHS = 250
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.0005
+        lr = 0.00005
+        EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.0001
+        lr = 0.0002
 
 
 
