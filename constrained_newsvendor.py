@@ -69,7 +69,7 @@ def run_constrained_newsvendor(
         lr = 0.0007
         EPOCHS = 250
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.0001
+        lr = 0.0005
         EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
@@ -82,7 +82,7 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    nl=6.0
+    nl=4.0
     X, Y_original, _ = data_generator.data_4to8(
         N_train, noise_level=nl, 
         uniform_input_space=False)
