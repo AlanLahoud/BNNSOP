@@ -69,7 +69,7 @@ def run_constrained_newsvendor(
         lr = 0.0007
         EPOCHS = 250
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.00005
+        lr = 0.0001
         EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
@@ -82,7 +82,7 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    nl=0.5
+    nl=6.0
     X, Y_original, _ = data_generator.data_4to8(
         N_train, noise_level=nl, 
         uniform_input_space=False)
@@ -163,7 +163,7 @@ def run_constrained_newsvendor(
     ##### Model and Training #########################################
     ##################################################################
     
-    model_name = 'weak_' + model_name
+    #model_name = 'weak_' + model_name
     
     if method_name == 'bnn':
         h = StrongVariationalNet(
@@ -224,6 +224,10 @@ def run_constrained_newsvendor(
     mse_result = []
         
     for M in M_SAMPLES:
+        
+        if not aleat_bool:
+            M = 1
+        
         model_used.update_n_samples(n_samples=M)
      
         mse_loss = nn.MSELoss()

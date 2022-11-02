@@ -18,12 +18,12 @@ def get_params(n_items, seed_number, dev):
         
         # Uncomment the stochastic part to have random deterministic parameters
         q = 6 + np.random.randint(-3, 3) # Fixed cost for each item
-        qs = 20 + np.random.randint(-5, 5)  # Shortage cost fpr each item
-        qw = 15 + np.random.randint(-5, 5) # Excess cost for each item
+        qs = 20 + np.random.randint(-10, 10)  # Shortage cost fpr each item
+        qw = 15 + np.random.randint(-8, 8) # Excess cost for each item
         
         c = 50 + np.random.randint(-20, 20) # Fixed cost for each item
-        cs = 1000 + np.random.randint(-200, 200)  # Shortage cost fpr each item
-        cw = 150 + np.random.randint(-30, 30) # Excess cost for each item
+        cs = 1200 + np.random.randint(-600, 600)  # Shortage cost fpr each item
+        cw = 150 + np.random.randint(-80, 80) # Excess cost for each item
         
         # constraints of price and size for each item
         pr = int(100000/(c + cs + cw))
