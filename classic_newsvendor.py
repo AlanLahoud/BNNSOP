@@ -80,6 +80,17 @@ def run_classic_newsvendor(
         cn = ClassicalNewsvendor(cost_shortage, cost_excess)
         lr = 0.001
 
+    lr = 0.002
+    if method_learning == 'decoupled' and method_name == 'ann':
+        lr = 0.002
+        EPOCHS = 250
+    if method_learning == 'decoupled' and method_name == 'bnn':
+        lr = 0.002
+        EPOCHS = 250
+    if method_learning == 'combined' and method_name == 'ann':
+        lr = 0.0005
+    if method_learning == 'combined' and method_name == 'bnn':
+        lr = 0.0005
 
     ##################################################################
     ##### Data #######################################################
