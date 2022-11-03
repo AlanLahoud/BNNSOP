@@ -97,9 +97,9 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
         x4 = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(1, 2, N-N//2)))
     
     def gen_output(x1, x2, x3, x4):
-        y1_perfect = np.maximum(5 + np.abs(6*x1)*np.sin(x2) + 4*np.sin(6*x3), 0)
+        y1_perfect = np.maximum(10 + np.abs(x1)*np.sin(x2) + 4*np.sin(6*x3), 0)
         y2_perfect = np.maximum(3 + np.abs(10*x2)*np.sin(x3)**2 + 2*np.sin(6*x1), 0)
-        y3_perfect = np.maximum(3 + np.abs(4*x3)**0.5*np.sin(x2) + 4*np.sin(2*x4), 0)
+        y3_perfect = np.maximum(10 + np.abs(4*x3)**0.5*np.sin(x2) + 4*np.sin(2*x4), 0)
         y4_perfect = np.maximum(7 + np.abs(6*x4)*np.sin(x1) + 2*np.sin(6*x2)**2, 0)
 
         y5_perfect = 5 + y1_perfect + y2_perfect
