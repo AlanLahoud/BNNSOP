@@ -72,7 +72,7 @@ def run_constrained_newsvendor(
         lr = 0.0005
         EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0005
+        lr = 0.0002
     if method_learning == 'combined' and method_name == 'bnn':
         lr = 0.0002
 
