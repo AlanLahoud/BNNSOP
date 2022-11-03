@@ -203,7 +203,7 @@ class TrainCombined():
             y_preds, rho_preds = self.model(x_batch)
 
             if self.aleat_bool:
-                y_preds = y_preds + torch.sqrt(
+                y_preds = y_preds + 0.01*torch.sqrt(
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
     
@@ -256,7 +256,7 @@ class TrainCombined():
                 y_val_preds, rho_val_preds = self.model(x_val_batch)
 
                 if self.aleat_bool:
-                    y_val_preds = y_val_preds + torch.sqrt(
+                    y_val_preds = y_val_preds + 0.01*torch.sqrt(
                         torch.exp(rho_val_preds))*torch.randn(
                         y_val_preds.size(), device = self.dev)
 

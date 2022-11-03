@@ -96,7 +96,7 @@ class VariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, 0, 0.1, rho_init-2)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
@@ -161,7 +161,7 @@ class WeakVariationalNet(nn.Module):
         rho_init=-5
         self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev,  0, 0.1, rho_init-2)
+        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev,  -0.0001, 0.0001, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + 2*(hl_sizes[0]+1)*output_size
@@ -342,7 +342,7 @@ class StrongVariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, 0, 0.1, rho_init)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]

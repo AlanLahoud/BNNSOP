@@ -58,7 +58,7 @@ def run_constrained_newsvendor(
     N_test = 3000
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 150  # Epochs on training
+    EPOCHS = 200  # Epochs on training
     
     
     if dev == torch.device('cuda'):
@@ -72,9 +72,9 @@ def run_constrained_newsvendor(
         lr = 0.0005
         EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0002
+        lr = 0.0007
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.0002
+        lr = 0.0007
 
 
 
