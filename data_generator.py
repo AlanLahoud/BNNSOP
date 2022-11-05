@@ -118,8 +118,8 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
                  np.random.normal(2, noise_level, N-N//4))
             )
 
-        n_poisson_1 = np.random.poisson(lam=0.1*noise_level, size=N)
-        n_poisson_2 = np.random.poisson(lam=0.2*noise_level, size=N)
+        n_poisson_1 = np.random.poisson(lam=0.2*noise_level, size=N)
+        n_poisson_2 = np.random.poisson(lam=0.4*noise_level, size=N)
 
 
         y1 = np.maximum(y1_perfect + n_gaussian_1, 0)
@@ -139,8 +139,8 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
     Y = gen_output(x1, x2, x3, x4)
 
     if add_yfair:
-        Y_noisy = np.zeros((32, N, 6))
-        for i in range(0, 32):
+        Y_noisy = np.zeros((8, N, 6))
+        for i in range(0, 8):
             Y_noisy[i,:,:] = gen_output(x1, x2, x3, x4)
         Y_noisy = torch.tensor(Y_noisy, dtype=torch.float32)
     else:

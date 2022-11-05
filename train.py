@@ -17,6 +17,7 @@ class TrainDecoupled():
         self.validation_loader = validation_loader
         self.bnn = bnn
         self.dev = dev
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)
         
         self.logsqrttwopi = torch.log(
             torch.sqrt(2*torch.tensor(math.pi)))
@@ -159,6 +160,7 @@ class TrainDecoupled():
                 best_model=copy.deepcopy(self.model)
             
             epoch_number += 1
+            self.scheduler.step()
             
         return best_model 
             
@@ -179,6 +181,7 @@ class TrainCombined():
         self.end_loss = OP.end_loss
         self.end_loss_dist = OP.end_loss_dist
         self.dev = dev
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)
        
 
     def inverse_transform(self, inp):
@@ -283,5 +286,6 @@ class TrainCombined():
                 best_model=copy.deepcopy(self.model)
                 
             epoch_number += 1
+            self.scheduler.step()
             
         return best_model
