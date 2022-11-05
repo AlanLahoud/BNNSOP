@@ -96,7 +96,7 @@ class VariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, 0, 0.1, rho_init-2)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
@@ -118,7 +118,7 @@ class VariationalNet(nn.Module):
         x = self.act1(x)
 
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x)
+        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):
@@ -161,7 +161,7 @@ class WeakVariationalNet(nn.Module):
         rho_init=-5
         self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev,  0, 0.1, rho_init-2)
+        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev,  -0.0001, 0.0001, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + 2*(hl_sizes[0]+1)*output_size
@@ -175,7 +175,7 @@ class WeakVariationalNet(nn.Module):
         x = self.act1(x)
 
         y_avg = self.linear2(x)
-        rho = self.linear2_2(x)
+        rho = self.linear2_2(x) #forcing low uncertainty in the beginning
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):
@@ -224,8 +224,8 @@ class StandardNet(nn.Module):
         x = self.linear3(x)
         x = self.act1(x)
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x)
-        return y_avg, rho   
+        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
+        return y_avg, rho  
     
     def update_n_samples(self, n_samples):
         self.n_samples = n_samples
@@ -251,7 +251,7 @@ class StrongStandardNet(nn.Module):
         super().__init__()
         self.n_samples = 1
      
-        hl_sizes = [1024, 512] 
+        hl_sizes = [512, 128] 
         self.act1 = nn.ReLU()
         self.linear1 = nn.Linear(input_size, hl_sizes[0])
         self.linear2 = nn.Linear(hl_sizes[0], hl_sizes[1])
@@ -267,7 +267,7 @@ class StrongStandardNet(nn.Module):
         x = self.linear3(x)
         x = self.act1(x)
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x)
+        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
         return y_avg, rho   
     
     def update_n_samples(self, n_samples):
@@ -306,7 +306,7 @@ class WeakStandardNet(nn.Module):
         x = self.act1(x)
         y_avg = self.linear2(x)
         rho = self.linear2_2(x)
-        return y_avg, rho   
+        return y_avg, rho #forcing low uncertainty in the beginning   
     
     def update_n_samples(self, n_samples):
         self.n_samples = n_samples
@@ -342,7 +342,7 @@ class StrongVariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, 0, 0.1, rho_init)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
@@ -364,7 +364,7 @@ class StrongVariationalNet(nn.Module):
         x = self.act1(x)
 
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x)
+        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):

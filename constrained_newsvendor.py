@@ -13,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 
 import data_generator
 import params_newsvendor as params
-from model import VariationalLayer, VariationalNet, StandardNet, StrongVariationalNet, WeakVariationalNet, WeakStandardNet
+from model import VariationalLayer, VariationalNet, StrongStandardNet, StrongVariationalNet, WeakVariationalNet, WeakStandardNet
 from train import TrainDecoupled, TrainCombined
 import constrained_newsvendor_utils as cnu
 
@@ -53,12 +53,12 @@ def run_constrained_newsvendor(
         model_name += '_'+sys.argv[i]
     model_name += '_'+ str(seed_number)
         
-    N_train = 6000
-    N_valid = 3000
-    N_test = 3000
+    N_train = 3000
+    N_valid = 1500
+    N_test = 1500
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 150  # Epochs on training
+    EPOCHS = 300  # Epochs on training
     
     
     if dev == torch.device('cuda'):
@@ -66,15 +66,15 @@ def run_constrained_newsvendor(
     
     lr = 0.0007
     if method_learning == 'decoupled' and method_name == 'ann':
-        lr = 0.0007
-        EPOCHS = 250
+        lr = 0.002
+        EPOCHS = 500
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.0005
-        EPOCHS = 250
+        lr = 0.002
+        EPOCHS = 500
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0002
+        lr = 0.0006
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.0002
+        lr = 0.0006
 
 
 
@@ -84,7 +84,7 @@ def run_constrained_newsvendor(
 
     nl=4.0
     X, Y_original, _ = data_generator.data_4to8(
-        N_train, noise_level=nl, 
+        N_train, noise_level=nl, seed_number=seed_number,
         uniform_input_space=False)
 
     # Output normalization
@@ -114,7 +114,7 @@ def run_constrained_newsvendor(
 
     
     X_val, Y_val_original, _ = data_generator.data_4to8(
-        N_valid, noise_level=nl, 
+        N_valid, noise_level=nl, seed_number=seed_number+100,
         uniform_input_space=False)
     Y_val = scaler.transform(Y_val_original).copy()
     #Y_val = Y_val_original
@@ -129,7 +129,7 @@ def run_constrained_newsvendor(
 
     
     X_test, Y_test_original, Y_noisy = data_generator.data_4to8(
-        N_test, noise_level=nl, 
+        N_test, noise_level=nl, seed_number=seed_number+200,
         uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     Y_test_original = torch.tensor(Y_test_original, dtype=torch.float32)
@@ -173,11 +173,11 @@ def run_constrained_newsvendor(
         #lr = lr*10
 
     elif method_name == 'ann':
-        h = StandardNet(input_size, output_size).to(dev)
+        h = StrongStandardNet(input_size, output_size).to(dev)
         #h = WeakStandardNet(input_size, output_size).to(dev)
         #lr = lr*10
         K = 0
-
+        
     opt_h = torch.optim.Adam(h.parameters(), lr=lr)
     mse_loss = nn.MSELoss(reduction='none')
 
@@ -235,7 +235,7 @@ def run_constrained_newsvendor(
         # Construct the solver again for the optimization part
         op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
         op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev)
-        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 32, dev)
+        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 8, dev)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
             model_used.update_n_samples(n_samples=1)
@@ -286,6 +286,12 @@ def run_constrained_newsvendor(
         reg_result.append(regret)
         freg_result.append(f_regret)
         
+        if not aleat_bool and method_name=='ann':
+            for i in range(0, 3):
+                mse_result.append(mse_loss_result.item())
+                reg_result.append(regret)
+                freg_result.append(f_regret)
+            break       
         
     return model_used, model_name, reg_result, freg_result, mse_result
 
