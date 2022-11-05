@@ -32,7 +32,9 @@ class ArtificialNoisyDataset(torch.utils.data.Dataset):
         return X_i, Y_i
 
 
-def data_1to1(N, noise_level=1, noise_type='gaussian', uniform_input_space=False, add_yfair=False):
+def data_1to1(N, noise_level=1, seed_number=42, noise_type='gaussian', uniform_input_space=False, add_yfair=False):
+    
+    np.random.seed(seed_number)
     
     if uniform_input_space:
         X = np.arange(-4, 4, 8/N)

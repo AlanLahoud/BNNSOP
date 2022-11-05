@@ -54,8 +54,8 @@ def run_classic_newsvendor(
     bnn = False 
     if method_name == 'bnn':
         bnn = True   
-        K = 5 # Hyperparameter for the training in ELBO loss
-        PLV = 3 # Hyperparameter for the prior in ELBO loss         
+        K = 1 # Hyperparameter for the training in ELBO loss
+        PLV = 1 # Hyperparameter for the prior in ELBO loss         
 
     model_name = method_name
     for i in range(2, len(sys.argv)):
@@ -80,12 +80,12 @@ def run_classic_newsvendor(
         cn = ClassicalNewsvendor(cost_shortage, cost_excess)
         lr = 0.001
 
-    lr = 0.002
+    lr = 0.001
     if method_learning == 'decoupled' and method_name == 'ann':
-        lr = 0.002
+        lr = 0.001
         EPOCHS = 250
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.002
+        lr = 0.001
         EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
@@ -97,7 +97,7 @@ def run_classic_newsvendor(
     ##################################################################
 
     X, y_original, _ = data_generator.data_1to1(
-        N_train, noise_level=1, noise_type = noise_type,
+        N_train, noise_level=1, seed_number=seed_number, noise_type = noise_type,
         uniform_input_space=False)
 
     # Output normalization
@@ -121,7 +121,7 @@ def run_classic_newsvendor(
         shuffle=False, num_workers=mp.cpu_count())
 
     X_val, y_val_original, _ = data_generator.data_1to1(
-        N_valid, noise_level=1, noise_type = noise_type, 
+        N_valid, noise_level=1, seed_number=seed_number + 100,  noise_type = noise_type, 
         uniform_input_space=False)
     y_val = scaler.transform(y_val_original).copy()
     #y_val = y_val_original
@@ -135,7 +135,7 @@ def run_classic_newsvendor(
         shuffle=False, num_workers=mp.cpu_count())
 
     X_test, y_test_original, y_true_noisy = data_generator.data_1to1(
-        N_test, noise_level=1, noise_type = noise_type, 
+        N_test, noise_level=1, seed_number=seed_number+200, noise_type = noise_type, 
         uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     y_test_original = torch.tensor(y_test_original, dtype=torch.float32)
