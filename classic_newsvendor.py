@@ -82,15 +82,15 @@ def run_classic_newsvendor(
 
     lr = 0.001
     if method_learning == 'decoupled' and method_name == 'ann':
-        lr = 0.001
+        lr = 0.0015
         EPOCHS = 250
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.001
+        lr = 0.0015
         EPOCHS = 250
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0005
+        lr = 0.0008
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.0005
+        lr = 0.0008
 
     ##################################################################
     ##### Data #######################################################
