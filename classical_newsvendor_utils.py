@@ -16,10 +16,11 @@ class ClassicalNewsvendor():
                             dist, 
                             quantile_cut, 
                             dim=0)
+        argmin_from_dist = torch.maximum(argmin_from_dist, torch.zeros_like(argmin_from_dist))
         return argmin_from_dist
 
     def get_argmins_from_value(self, demand):
-        argmin_from_value = demand
+        argmin_from_value = argmin_from_dist = torch.maximum(demand, torch.zeros_like(demand))
         return argmin_from_value
 
     def cost_per_instance(self, order, demand_true):
