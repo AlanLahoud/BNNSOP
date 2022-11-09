@@ -168,9 +168,10 @@ class TrainDecoupled():
             
 class TrainCombined():
     
-    def __init__(self, bnn, model, opt, aleat_bool, training_loader, scaler, validation_loader, OP, dev):
+    def __init__(self, bnn, model, opt, K, aleat_bool, training_loader, scaler, validation_loader, OP, dev):
         self.model = model
         self.opt = opt
+        self.K = K
         self.aleat_bool = aleat_bool
         self.training_loader = training_loader
         self.scaler = scaler
@@ -191,9 +192,9 @@ class TrainCombined():
 
         n = len(self.training_loader.dataset)
         n_batches = len(self.training_loader)
-        
-        end_total_loss = 0
 
+        end_total_loss = 0.
+        kl_running_loss = 0.
         
         for i, data in enumerate(self.training_loader):
             
@@ -214,33 +215,43 @@ class TrainCombined():
             y_batch = self.inverse_transform(y_batch)
             if self.bnn:
                 #y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)                
-                total_loss = self.end_loss_dist(y_preds, y_batch)
+                end_loss_ = self.end_loss_dist(y_preds, y_batch)
+                
+                kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
+                total_loss = end_loss_ + kl_loss_
+                
 
             else:
-                total_loss = self.end_loss(y_preds, y_batch)
+                end_loss_ = self.end_loss(y_preds, y_batch)
+                
+                kl_loss_ = torch.tensor(0)
+                total_loss = end_loss_ + kl_loss_
                 
 
             total_loss.backward()
             self.opt.step()
 
-            end_total_loss += total_loss.item()
+            end_total_loss += end_loss_.item()
+            kl_running_loss += kl_loss_.item()
 
         end_total_loss = end_total_loss/n_batches
+        kl = kl_running_loss
 
-        return end_total_loss
+        return end_total_loss, kl
     
     
     
     def train(self, EPOCHS=150):
         epoch_number = 0
         
-        avg_best_vloss = np.inf
+        best_loss = np.inf
         best_model = copy.deepcopy(self.model)
         
         for epoch in tqdm(range(EPOCHS)):
 
             self.model.train(True)
-            avg_loss = self.train_one_epoch()
+            end_loss, kl_loss = self.train_one_epoch()
+            total_loss = end_loss + kl_loss
 
             self.model.train(False)
 
@@ -248,6 +259,11 @@ class TrainCombined():
             n_batches = len(self.validation_loader)
             
             total_running_loss_v = 0.0
+            
+            if self.bnn:
+                kl_loss_val = self.K*self.model.kl_divergence_NN()
+            else:
+                kl_loss_val = torch.tensor(0)
             
             for i, vdata in enumerate(self.validation_loader):
 
@@ -273,16 +289,23 @@ class TrainCombined():
                     total_loss_v = self.end_loss(y_val_preds, y_val_batch)
                 
                 total_running_loss_v += total_loss_v.detach().item()
-                  
-
+                                  
+            
+            end_loss_val = (total_running_loss_v/n_batches)
+            kl_loss_val = (kl_loss_val).item()
+            total_loss_val = end_loss_val + kl_loss_val
+            
             if epoch_number == 0 or (epoch_number+1)%1 == 0: 
                 print('------------------EPOCH {}------------------'.format(
                     epoch_number + 1))
-                print('END LOSS \t train {} valid {}'.format(
-                    round(avg_loss, 3), round(total_running_loss_v/n_batches, 3)))
+                print(
+                    f'END LOSS \t train {round(end_loss, 3)} valid {round(end_loss_val, 3)} \n',
+                    f'KL LOSS \t train {round(kl_loss/(self.K+0.0001), 3)} valid {round(kl_loss_val/(self.K+0.0001), 3)} \n',
+                    f'TOTAL LOSS \t train {round(total_loss, 3)} valid {round(total_loss_val, 3)} \n',
+                )
 
-            if  total_running_loss_v/n_batches < avg_best_vloss:
-                avg_best_vloss = total_running_loss_v/n_batches
+            if  total_loss_val < best_loss:
+                best_loss = total_loss_val
                 best_model=copy.deepcopy(self.model)
                 
             epoch_number += 1

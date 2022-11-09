@@ -83,14 +83,16 @@ def run_classic_newsvendor(
     lr = 0.001
     if method_learning == 'decoupled' and method_name == 'ann':
         lr = 0.0015
-        EPOCHS = 250
+        EPOCHS = 350
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0015
-        EPOCHS = 250
+        EPOCHS = 350
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0008
+        lr = 0.0015
+        EPOCHS = 350
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.0008
+        lr = 0.0015
+        EPOCHS = 350
 
     ##################################################################
     ##### Data #######################################################
@@ -184,6 +186,7 @@ def run_classic_newsvendor(
                         bnn = bnn,
                         model=h,
                         opt=opt_h,
+                        K=K,
                         aleat_bool=aleat_bool,
                         training_loader=training_loader,
                         scaler=scaler,
