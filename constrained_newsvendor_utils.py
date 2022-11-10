@@ -1,7 +1,6 @@
 import torch
 from qpth.qp import QPFunction
 
-
 class SolveConstrainedNewsvendor():
     def __init__(self, params_t, n_samples, dev):
         super(SolveConstrainedNewsvendor, self).__init__()
@@ -20,6 +19,8 @@ class SolveConstrainedNewsvendor():
         self.params_cs = params_t['cs'].to(self.dev)
         self.params_cw = params_t['cw'].to(self.dev)
         
+        self.params_pr = params_t['pr'].to(self.dev)
+        
         self.zeros_params = torch.zeros((self.n_items)).to(self.dev)
         
             
@@ -34,18 +35,18 @@ class SolveConstrainedNewsvendor():
         self.Q = torch.diag(
             torch.hstack(
                 (
-                    params_t['q'], 
-                    (1/n_samples)*params_t['qs'].repeat_interleave(n_samples), 
-                    (1/n_samples)*params_t['qw'].repeat_interleave(n_samples)
+                    self.params_q, 
+                    (1/n_samples)*self.params_qs.repeat_interleave(n_samples), 
+                    (1/n_samples)*self.params_qw.repeat_interleave(n_samples)
                 )
             )).to(self.dev)
         
         
         self.lin = torch.hstack(
                                 (
-                                    params_t['c'], 
-                                    (1/n_samples)*params_t['cs'].repeat_interleave(n_samples), 
-                                    (1/n_samples)*params_t['cw'].repeat_interleave(n_samples)
+                                    self.params_c, 
+                                    (1/n_samples)*self.params_cs.repeat_interleave(n_samples), 
+                                    (1/n_samples)*self.params_cw.repeat_interleave(n_samples)
                                 )).to(self.dev)
              
             
@@ -69,7 +70,7 @@ class SolveConstrainedNewsvendor():
         
         price_ineq = torch.hstack(
             (
-                params_t['pr'], 
+                self.params_pr, 
                 zeros_array, 
                 zeros_array
             )

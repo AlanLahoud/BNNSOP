@@ -44,8 +44,8 @@ class VariationalLayer(nn.Module):
         return torch.log(1 + torch.exp(rho))
 
     def sample_weight(self):
-        w = (self.theta_mu 
-        + self.rho_to_sigma(self.theta_rho)*torch.randn(
+        w = (self.theta_mu.to(self.dev)
+        + self.rho_to_sigma(self.theta_rho.to(self.dev))*torch.randn(
             (self.n_samples, self.theta_mu.shape[0], self.theta_mu.shape[1])
         ).to(self.dev))
         return w
@@ -77,8 +77,8 @@ class VariationalLayer(nn.Module):
     def forward(self, x_layer):
         #theta_mu = self.theta_mu
         #theta_rho = self.theta_rho
-        w = self.sample_weight()    
-        x_next_layer = torch.bmm(x_layer, w[:, :-1, :]) + w[:,-1,:].unsqueeze(1)
+        w = self.sample_weight().to(self.dev)    
+        x_next_layer = torch.bmm(x_layer.to(self.dev), w[:, :-1, :]) + w[:,-1,:].unsqueeze(1)
         return x_next_layer
     
     
