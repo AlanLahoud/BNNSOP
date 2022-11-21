@@ -46,35 +46,33 @@ def run_constrained_newsvendor(
     if method_name == 'bnn':
         bnn = True   
         K = 1 # Hyperparameter for the training in ELBO loss
-        PLV = 1 # Hyperparameter for the prior in ELBO loss         
+        PLV = 1 # Hyperparameter for the prior in ELBO loss   
 
     model_name = method_name + '_constrained_'
     for i in range(2, len(sys.argv)):
         model_name += '_'+sys.argv[i]
     model_name += '_'+ str(seed_number)
         
-    N_train = 3000
-    N_valid = 1500
-    N_test = 1500
+    N_train = 4000
+    N_valid = 2000
+    N_test = 2000
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 300  # Epochs on training
+    EPOCHS = 350  # Epochs on training
     
     
     if dev == torch.device('cuda'):
         BATCH_SIZE_LOADER = 256
     
-    lr = 0.0007
     if method_learning == 'decoupled' and method_name == 'ann':
         lr = 0.002
-        EPOCHS = 500
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.002
-        EPOCHS = 500
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0006
+        lr = 0.002
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.001
+        K = 1000 # to be same magnitude as the end loss 
+        lr = 0.002
 
 
 
@@ -137,12 +135,12 @@ def run_constrained_newsvendor(
 
     data_test = data_generator.ArtificialDataset(X_test, Y_test_original)
     test_loader = torch.utils.data.DataLoader(
-    data_test, batch_size=64,
+    data_test, batch_size=16,
     shuffle=False, num_workers=cpu_count)
     
     data_test_noisy = data_generator.ArtificialNoisyDataset(X_test, Y_noisy)
     test_noisy_loader = torch.utils.data.DataLoader(
-    data_test_noisy, batch_size=64,
+    data_test_noisy, batch_size=16,
     shuffle=False, num_workers=cpu_count)
     
     input_size = X.shape[1]
@@ -199,6 +197,7 @@ def run_constrained_newsvendor(
                         bnn = bnn,
                         model=h,
                         opt=opt_h,
+                        K=K,
                         aleat_bool=aleat_bool,
                         training_loader=training_loader,
                         scaler=scaler,
@@ -231,11 +230,17 @@ def run_constrained_newsvendor(
         model_used.update_n_samples(n_samples=M)
      
         mse_loss = nn.MSELoss()
-           
+        
+        dev_opt = dev
+        if M>40:
+            dev_opt = torch.device('cpu') 
+        
+        model_used = model_used.to(dev_opt)
+            
         # Construct the solver again for the optimization part
-        op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
-        op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev)
-        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 8, dev)
+        op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev_opt)
+        op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev_opt)
+        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 8, dev_opt)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
             model_used.update_n_samples(n_samples=1)
@@ -245,7 +250,6 @@ def run_constrained_newsvendor(
         f_total_best = 0
         mse_loss_result = 0
         n_batches = len(test_loader)
-        
 
         for i, (tdata, tndata) in enumerate(zip(test_loader, test_noisy_loader)):
             
@@ -253,24 +257,24 @@ def run_constrained_newsvendor(
             _, y_test_noisy_batch = tndata
             y_test_noisy_batch = torch.permute(y_test_noisy_batch, (1,0,2))
                 
-            x_test_batch = x_test_batch.to(dev)
-            y_test_batch = y_test_batch.to(dev)
-            y_test_noisy_batch = y_test_noisy_batch.to(dev)
+            x_test_batch = x_test_batch.to(dev_opt)
+            y_test_batch = y_test_batch.to(dev_opt)
+            y_test_noisy_batch = y_test_noisy_batch.to(dev_opt)
             
             y_preds = model_used.forward_dist(x_test_batch, aleat_bool)
             y_preds = inverse_transform(y_preds)
 
             mse_loss_result += (mse_loss(
-                y_preds.mean(axis=0), y_test_batch)/n_batches).detach()
+                y_preds.mean(axis=0).to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
             
             f_total += (op_solver_dist.end_loss_dist(
-                y_preds, y_test_batch)/n_batches).detach()         
+                y_preds.to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()         
             
             f_total_noisy += (op_solver_dist_noisy.end_loss_dist(
-                y_test_noisy_batch, y_test_batch)/n_batches).detach()
+                y_test_noisy_batch.to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
             
             f_total_best += (op_solver.cost_fn(
-                y_test_batch.unsqueeze(0), y_test_batch)/n_batches).detach()
+                y_test_batch.unsqueeze(0).to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
                         
         regret = f_total.item() - f_total_best.item()
         f_regret = f_total.item() - f_total_noisy.item()
@@ -311,7 +315,7 @@ if __name__ == '__main__':
     aleat_bool = bool(int(sys.argv[4])) # Modeling aleatoric uncert
     N_SAMPLES = int(sys.argv[5])  # Sampling size while training
     #M_SAMPLES = int(sys.argv[6])  # Sampling size while optimizing
-    M_SAMPLES = [32, 16, 8, 4]
+    M_SAMPLES = [64, 32, 16, 8]
         
     mse_results_32 = []
     mse_results_16 = []
