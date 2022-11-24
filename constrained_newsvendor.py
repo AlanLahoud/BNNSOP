@@ -282,6 +282,7 @@ def run_constrained_newsvendor(
         print('Results for seed = ', seed_number, 'and M = ', M)
         print('MSE loss: ', round(mse_loss_result.item(), 5))
         print('END cost: ', round(f_total.item(), 5))
+        print('FAIR cost: ', round(f_total_noisy.item(), 5))
         print('BEST cost: ', round(f_total_best.item(), 5))
         print('REGRET: ', round(regret, 5))
         print('FAIR REGRET: ', round(f_regret, 5))

@@ -140,9 +140,10 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
     
     Y = gen_output(x1, x2, x3, x4)
 
+    np.random.seed(0)
     if add_yfair:
-        Y_noisy = np.zeros((8, N, 6))
-        for i in range(0, 8):
+        Y_noisy = np.zeros((32, N, 6))
+        for i in range(0, 32):
             Y_noisy[i,:,:] = gen_output(x1, x2, x3, x4)
         Y_noisy = torch.tensor(Y_noisy, dtype=torch.float32)
     else:

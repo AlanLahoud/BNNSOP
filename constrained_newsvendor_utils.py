@@ -130,7 +130,7 @@ class SolveConstrainedNewsvendor():
         bound = torch.hstack((uncert_bound, determ_bound))     
         
         argmin = QPFunction(verbose=-1)\
-            (Q.double(), lin.double(), ineqs.double(), 
+            (2*Q.double(), lin.double(), ineqs.double(), 
              bound.double(), self.e, self.e).double()
             
         return argmin[:,:self.n_items]
