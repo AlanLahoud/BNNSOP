@@ -240,7 +240,7 @@ def run_constrained_newsvendor(
         # Construct the solver again for the optimization part
         op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev_opt)
         op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev_opt)
-        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 8, dev_opt)
+        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 32, dev_opt)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
             model_used.update_n_samples(n_samples=1)
