@@ -20,12 +20,12 @@ import joblib
 
 # Utils
 import data_generator
+from gauss_proc import GP
 from model import VariationalLayer, VariationalNet, StandardNet, WeakVariationalNet, WeakStandardNet
 from train import TrainDecoupled, TrainCombined
 from classical_newsvendor_utils import ClassicalNewsvendor
 
 
-   
 def run_classic_newsvendor(
             method_name, 
             method_learning,
@@ -44,12 +44,14 @@ def run_classic_newsvendor(
     torch.manual_seed(seed_number)
     random.seed(seed_number)
 
-    assert (method_name in ['ann','bnn'])
-    assert (method_learning in ['decoupled','combined'])
+    assert (method_name in ['ann','bnn','gp'])
     assert (noise_type in ['gaussian','multimodal'])
-    assert (aleat_bool in [True, False])
-    assert (N_SAMPLES>=1 and N_SAMPLES<9999)
-    #assert (M_SAMPLES>=1 and M_SAMPLES<9999)
+    
+    if method_name in ['ann','bnn']:
+        assert (method_learning in ['decoupled','combined'])
+        assert (aleat_bool in [True, False])
+        assert (N_SAMPLES>=1 and N_SAMPLES<9999)
+        #assert (M_SAMPLES>=1 and M_SAMPLES<9999)
 
     bnn = False 
     if method_name == 'bnn':
@@ -154,52 +156,60 @@ def run_classic_newsvendor(
     ##################################################################
     
     #model_name = 'weak_' + model_name
-    if method_name == 'bnn':
-        #h = WeakVariationalNet(
-        #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-        h = VariationalNet(
-            N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-
-    elif method_name == 'ann':
-        #h = WeakStandardNet(input_size, output_size).to(dev)
-        h = StandardNet(input_size, output_size).to(dev)
-        K = 0
-
-    opt_h = torch.optim.Adam(h.parameters(), lr=lr)
-    mse_loss = nn.MSELoss(reduction='none')
-
-    if method_learning == 'decoupled':
-        train_NN = TrainDecoupled(
-                        bnn = bnn,
-                        model=h,
-                        opt=opt_h,
-                        loss_data=mse_loss,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        validation_loader=validation_loader,
-                        dev=dev
-                    )
-
-    elif method_learning == 'combined':
-        train_NN = TrainCombined(
-                        bnn = bnn,
-                        model=h,
-                        opt=opt_h,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        scaler=scaler,
-                        validation_loader=validation_loader,
-                        OP=cn,
-                        dev=dev
-                    )
-
+    
+    if method_name == 'gp':
+        gp = GP(length_scale=1.0, length_scale_bounds=(1e-3, 1e3), 
+                    alpha_noise=1, n_restarts_optimizer=6)
+        gp.gp_fit(X.detach().numpy(), y.detach().numpy())
+        model_used = gp
+    
     else:
-        print('check method_learning variable')
-        quit()
+        if method_name == 'bnn':
+            h = WeakVariationalNet(
+                N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
+            #h = VariationalNet(
+            #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
 
-    model_used = train_NN.train(EPOCHS=EPOCHS)
+        elif method_name == 'ann':
+            h = WeakStandardNet(input_size, output_size).to(dev)
+            #h = StandardNet(input_size, output_size).to(dev)
+            K = 0
+
+        opt_h = torch.optim.Adam(h.parameters(), lr=lr)
+        mse_loss = nn.MSELoss(reduction='none')
+
+        if method_learning == 'decoupled':
+            train_NN = TrainDecoupled(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            loss_data=mse_loss,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            validation_loader=validation_loader,
+                            dev=dev
+                        )
+
+        elif method_learning == 'combined':
+            train_NN = TrainCombined(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            scaler=scaler,
+                            validation_loader=validation_loader,
+                            OP=cn,
+                            dev=dev
+                        )
+
+        else:
+            print('check method_learning variable')
+            quit()
+
+        model_used = train_NN.train(EPOCHS=EPOCHS)
 
     mser = []
     regr = []
