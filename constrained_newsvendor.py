@@ -240,7 +240,7 @@ def run_constrained_newsvendor(
         # Construct the solver again for the optimization part
         op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev_opt)
         op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev_opt)
-        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 8, dev_opt)
+        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 32, dev_opt)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
             model_used.update_n_samples(n_samples=1)
@@ -282,6 +282,7 @@ def run_constrained_newsvendor(
         print('Results for seed = ', seed_number, 'and M = ', M)
         print('MSE loss: ', round(mse_loss_result.item(), 5))
         print('END cost: ', round(f_total.item(), 5))
+        print('FAIR cost: ', round(f_total_noisy.item(), 5))
         print('BEST cost: ', round(f_total_best.item(), 5))
         print('REGRET: ', round(regret, 5))
         print('FAIR REGRET: ', round(f_regret, 5))
