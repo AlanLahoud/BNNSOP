@@ -170,7 +170,7 @@ def run_constrained_newsvendor(
     
     if method_name == 'gp':
         gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
-                    alpha_noise=20, n_restarts_optimizer=20)
+                    alpha_noise=1, n_restarts_optimizer=20)
         gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
         model_used = gp
         
@@ -278,7 +278,7 @@ def run_constrained_newsvendor(
             
             y_preds = y_preds.squeeze()
             
-            y_preds = inverse_transform(y_preds)
+            y_preds = inverse_transform(y_preds.to(dev))
 
             mse_loss_result += (mse_loss(
                 y_preds.mean(axis=0).to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
