@@ -158,8 +158,8 @@ def run_classic_newsvendor(
     #model_name = 'weak_' + model_name
     
     if method_name == 'gp':
-        gp = GP(length_scale=1.0, length_scale_bounds=(1e-3, 1e3), 
-                    alpha_noise=1, n_restarts_optimizer=6)
+        gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e2), 
+                    alpha_noise=50, n_restarts_optimizer=10)
         gp.gp_fit(X.detach().numpy(), y.detach().numpy())
         model_used = gp
     

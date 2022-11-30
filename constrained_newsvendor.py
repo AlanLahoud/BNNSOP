@@ -13,6 +13,7 @@ from sklearn.preprocessing import StandardScaler
 
 import data_generator
 import params_newsvendor as params
+from gauss_proc import GP
 from model import VariationalLayer, VariationalNet, StrongStandardNet, StrongVariationalNet, WeakVariationalNet, WeakStandardNet
 from train import TrainDecoupled, TrainCombined
 import constrained_newsvendor_utils as cnu
@@ -36,11 +37,13 @@ def run_constrained_newsvendor(
     torch.manual_seed(seed_number)
     random.seed(seed_number)
 
-    assert (method_name in ['ann','bnn'])
-    assert (method_learning in ['decoupled','combined'])
-    assert (aleat_bool in [True, False])
-    assert (N_SAMPLES>=1 and N_SAMPLES<9999)
-    #assert (M_SAMPLES>=1 and M_SAMPLES<9999)
+    assert (method_name in ['ann','bnn','gp'])
+    
+    if method_name in ['ann','bnn']:
+        assert (method_learning in ['decoupled','combined'])
+        assert (aleat_bool in [True, False])
+        assert (N_SAMPLES>=1 and N_SAMPLES<9999)
+        #assert (M_SAMPLES>=1 and M_SAMPLES<9999)
 
     bnn = False 
     if method_name == 'bnn':
@@ -150,12 +153,13 @@ def run_constrained_newsvendor(
     n_items = output_size
     params_t, _ = params.get_params(n_items, seed_number, dev)
 
-    # Construct the solver
-    op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
-    op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, N_SAMPLES, dev)
+    if method_learning == 'combined':
+        # Construct the solver
+        op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
+        op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, N_SAMPLES, dev)
 
-    if not aleat_bool and method_name=='ann':
-        op_solver_dist = op_solver
+        if not aleat_bool and method_name=='ann':
+            op_solver_dist = op_solver
 
     ##################################################################
     ##### Model and Training #########################################
@@ -163,55 +167,63 @@ def run_constrained_newsvendor(
     
     #model_name = 'weak_' + model_name
     
-    if method_name == 'bnn':
-        h = StrongVariationalNet(
-            N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-        #h = WeakVariationalNet(
-        #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-        #lr = lr*10
-
-    elif method_name == 'ann':
-        h = StrongStandardNet(input_size, output_size).to(dev)
-        #h = WeakStandardNet(input_size, output_size).to(dev)
-        #lr = lr*10
-        K = 0
+    
+    if method_name == 'gp':
+        gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
+                    alpha_noise=20, n_restarts_optimizer=20)
+        gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
+        model_used = gp
         
-    opt_h = torch.optim.Adam(h.parameters(), lr=lr)
-    mse_loss = nn.MSELoss(reduction='none')
-
-    if method_learning == 'decoupled':
-        train_NN = TrainDecoupled(
-                        bnn = bnn,
-                        model=h,
-                        opt=opt_h,
-                        loss_data=mse_loss,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        validation_loader=validation_loader,
-                        dev=dev
-                    )
-
-    elif method_learning == 'combined':
-        train_NN = TrainCombined(
-                        bnn = bnn,
-                        model=h,
-                        opt=opt_h,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        scaler=scaler,
-                        validation_loader=validation_loader,
-                        OP=op_solver_dist,
-                        dev=dev
-                    )
-
     else:
-        print('check method_learning variable')
-        quit()
+        if method_name == 'bnn':
+            h = StrongVariationalNet(
+                N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
+            #h = WeakVariationalNet(
+            #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
+            #lr = lr*10
+
+        elif method_name == 'ann':
+            h = StrongStandardNet(input_size, output_size).to(dev)
+            #h = WeakStandardNet(input_size, output_size).to(dev)
+            #lr = lr*10
+            K = 0
+
+        opt_h = torch.optim.Adam(h.parameters(), lr=lr)
+        mse_loss = nn.MSELoss(reduction='none')
+
+        if method_learning == 'decoupled':
+            train_NN = TrainDecoupled(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            loss_data=mse_loss,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            validation_loader=validation_loader,
+                            dev=dev
+                        )
+
+        elif method_learning == 'combined':
+            train_NN = TrainCombined(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            scaler=scaler,
+                            validation_loader=validation_loader,
+                            OP=op_solver_dist,
+                            dev=dev
+                        )
+
+        else:
+            print('check method_learning variable')
+            quit()
 
 
-    model_used = train_NN.train(EPOCHS=EPOCHS)
+        model_used = train_NN.train(EPOCHS=EPOCHS)
 
 
     ##################################################################
@@ -235,7 +247,8 @@ def run_constrained_newsvendor(
         if M>40:
             dev_opt = torch.device('cpu') 
         
-        model_used = model_used.to(dev_opt)
+        if method_name in ['ann','bnn']:
+            model_used = model_used.to(dev_opt)
             
         # Construct the solver again for the optimization part
         op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev_opt)
@@ -262,6 +275,9 @@ def run_constrained_newsvendor(
             y_test_noisy_batch = y_test_noisy_batch.to(dev_opt)
             
             y_preds = model_used.forward_dist(x_test_batch, aleat_bool)
+            
+            y_preds = y_preds.squeeze()
+            
             y_preds = inverse_transform(y_preds)
 
             mse_loss_result += (mse_loss(

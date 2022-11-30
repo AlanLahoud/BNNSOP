@@ -27,6 +27,10 @@ class GP():
         return self.gp_reg
         
     def forward_dist(self, X_test, aleat_bool):
-        y_aux = self.gp_reg.sample_y(X_test,n_samples=self.M).T
-        y_dist = torch.tensor(np.expand_dims(y_aux, -1))
+        y_aux = self.gp_reg.sample_y(X_test,n_samples=self.M)
+        if y_aux.ndim==2:
+            y_aux = y_aux.T
+            y_dist = torch.tensor(np.expand_dims(y_aux, -1))
+        else:
+            y_dist = torch.permute(torch.tensor(y_aux), (2,0,1))
         return y_dist
