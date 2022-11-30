@@ -70,8 +70,8 @@ def data_1to1(N, noise_level=1, seed_number=42, noise_type='gaussian', uniform_i
     y = gen_output(X)
     
     if add_yfair:
-        y_noisy = np.zeros((1000, N, 1))
-        for i in range(0, 1000):
+        y_noisy = np.zeros((10000, N, 1))
+        for i in range(0, 10000):
             y_noisy[i,:,:] = gen_output(X)
         y_noisy = torch.tensor(y_noisy, dtype=torch.float32)
     else:
