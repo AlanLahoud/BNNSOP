@@ -27,6 +27,10 @@ class GP():
         return self.gp_reg
         
     def forward_dist(self, X_test, aleat_bool):
+        try:
+            X_test = X_test.to('cpu')
+        except:
+            pass
         y_aux = self.gp_reg.sample_y(X_test,n_samples=self.M)
         if y_aux.ndim==2:
             y_aux = y_aux.T

@@ -4,6 +4,8 @@ import random
 import joblib
 import sys
 
+from tqdm import tqdm
+
 import torch
 import torch.multiprocessing as mp
 import torch.nn as nn
@@ -55,7 +57,7 @@ def run_constrained_newsvendor(
     for i in range(2, len(sys.argv)):
         model_name += '_'+sys.argv[i]
     model_name += '_'+ str(seed_number)
-        
+       
     N_train = 4000
     N_valid = 2000
     N_test = 2000
@@ -170,7 +172,7 @@ def run_constrained_newsvendor(
     
     if method_name == 'gp':
         gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
-                    alpha_noise=1, n_restarts_optimizer=20)
+                    alpha_noise=0.01, n_restarts_optimizer=20)
         gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
         model_used = gp
         
@@ -264,7 +266,7 @@ def run_constrained_newsvendor(
         mse_loss_result = 0
         n_batches = len(test_loader)
 
-        for i, (tdata, tndata) in enumerate(zip(test_loader, test_noisy_loader)):
+        for i, (tdata, tndata) in tqdm(enumerate(zip(test_loader, test_noisy_loader))):
             
             x_test_batch, y_test_batch = tdata
             _, y_test_noisy_batch = tndata
