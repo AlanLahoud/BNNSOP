@@ -100,7 +100,7 @@ def run_classic_newsvendor(
         EPOCHS = 350
         explr=0.99
     if aleat_bool and method_name == 'ann':
-        lr = 0.0015
+        lr = 0.005
         EPOCHS = 600
         explr=1.0
 
