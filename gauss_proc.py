@@ -1,11 +1,11 @@
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 import torch
 
 class GP():    
     def __init__(self, length_scale, length_scale_bounds, 
-                 alpha_noise, n_restarts_optimizer):
+                 alpha_noise, white_noise, n_restarts_optimizer):
         self.ls = length_scale
         self.lsbs = length_scale_bounds
         self.alp = alpha_noise
@@ -14,10 +14,13 @@ class GP():
                         kernel=self.define_kernel(), 
                         alpha=self.alp, 
                         n_restarts_optimizer=self.nro)
+        self.wn = white_noise
         self.M = 512
     
     def define_kernel(self):
-        return RBF(self.ls, self.lsbs)
+        return RBF(self.ls, self.lsbs) + WhiteKernel(
+            noise_level=self.wn, 
+            noise_level_bounds=(self.wn/100, self.wn*100))
     
     def update_n_samples(self, n_samples):
         self.M = n_samples
