@@ -95,6 +95,9 @@ def run_classic_newsvendor(
     if method_learning == 'combined' and method_name == 'bnn':
         lr = 0.0015
         EPOCHS = 350
+    if aleat_bool and method_name == 'ann':
+        lr = 0.015
+        EPOCHS = 350
 
     ##################################################################
     ##### Data #######################################################
