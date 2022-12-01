@@ -7,7 +7,7 @@ import copy
 
 class TrainDecoupled():
     
-    def __init__(self, bnn, model, opt, loss_data, K, aleat_bool, training_loader, validation_loader, dev):
+    def __init__(self, bnn, model, opt, loss_data, K, aleat_bool, training_loader, validation_loader, dev, explr=0.99):
         self.model = model
         self.opt = opt
         self.loss_data = loss_data
@@ -17,7 +17,7 @@ class TrainDecoupled():
         self.validation_loader = validation_loader
         self.bnn = bnn
         self.dev = dev
-        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=explr)
         
         self.logsqrttwopi = torch.log(
             torch.sqrt(2*torch.tensor(math.pi)))
@@ -168,7 +168,7 @@ class TrainDecoupled():
             
 class TrainCombined():
     
-    def __init__(self, bnn, model, opt, K, aleat_bool, training_loader, scaler, validation_loader, OP, dev):
+    def __init__(self, bnn, model, opt, K, aleat_bool, training_loader, scaler, validation_loader, OP, dev, explr=0.99):
         self.model = model
         self.opt = opt
         self.K = K
@@ -182,7 +182,7 @@ class TrainCombined():
         self.end_loss = OP.end_loss
         self.end_loss_dist = OP.end_loss_dist
         self.dev = dev
-        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=explr)
        
 
     def inverse_transform(self, inp):
