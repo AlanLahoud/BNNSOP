@@ -10,11 +10,11 @@ class GP():
         self.lsbs = length_scale_bounds
         self.alp = alpha_noise
         self.nro = n_restarts_optimizer
+        self.wn = white_noise
         self.gp_reg = GaussianProcessRegressor(
                         kernel=self.define_kernel(), 
                         alpha=self.alp, 
                         n_restarts_optimizer=self.nro)
-        self.wn = white_noise
         self.M = 512
     
     def define_kernel(self):
