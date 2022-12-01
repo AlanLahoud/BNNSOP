@@ -161,7 +161,7 @@ def run_classic_newsvendor(
         gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
                     alpha_noise=0.1, white_noise=1, 
                     n_restarts_optimizer=12)
-        gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
+        gp.gp_fit(X.detach().numpy(), y.detach().numpy())
         model_used = gp
     
     else:

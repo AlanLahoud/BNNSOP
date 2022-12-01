@@ -172,7 +172,7 @@ def run_constrained_newsvendor(
     
     if method_name == 'gp':
         gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
-                    alpha_noise=0.01, white_noise=0.1, 
+                    alpha_noise=0.1, white_noise=1, 
                     n_restarts_optimizer=12)
         gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
         model_used = gp
@@ -238,7 +238,7 @@ def run_constrained_newsvendor(
     mse_result = []
         
     for M in M_SAMPLES:
-        
+        M=32
         if not aleat_bool:
             M = 1
         
