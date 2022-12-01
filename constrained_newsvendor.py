@@ -62,6 +62,11 @@ def run_constrained_newsvendor(
     N_valid = 2000
     N_test = 2000
 
+    N_train = 3000
+    N_valid = 1500
+    N_test = 1500
+
+    
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 350  # Epochs on training
     
@@ -172,7 +177,7 @@ def run_constrained_newsvendor(
     
     if method_name == 'gp':
         gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
-                    alpha_noise=0.01, n_restarts_optimizer=20)
+                    alpha_noise=0.2, n_restarts_optimizer=8)
         gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
         model_used = gp
         
