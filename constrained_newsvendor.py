@@ -180,6 +180,7 @@ def run_constrained_newsvendor(
                     n_restarts_optimizer=12)
             gp.gp_fit(X.detach().numpy(), Y[:,k].detach().numpy())
             model_gps.append(gp)
+            model_used = gp
         
     else:
         if method_name == 'bnn':
