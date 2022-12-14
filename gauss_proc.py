@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 import torch
+from sklearn.base import clone
 
 class GP():    
     def __init__(self, length_scale, length_scale_bounds, 
@@ -28,6 +29,8 @@ class GP():
     def gp_fit(self, X, y):
         self.gp_reg.fit(X, y)
         return self.gp_reg
+
+        
         
     def forward_dist(self, X_test, aleat_bool):
         try:

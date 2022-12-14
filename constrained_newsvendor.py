@@ -171,11 +171,15 @@ def run_constrained_newsvendor(
     
     
     if method_name == 'gp':
-        gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
+        n_outputs = Y.shape[1]
+        assert n_outputs >=1
+        model_gps = []
+        for k in range(0, n_outputs):
+            gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
                     alpha_noise=0.01, white_noise=1, 
                     n_restarts_optimizer=12)
-        gp.gp_fit(X.detach().numpy(), Y.detach().numpy())
-        model_used = gp
+            gp.gp_fit(X.detach().numpy(), Y[:,k].detach().numpy())
+            model_gps.append(gp)
         
     else:
         if method_name == 'bnn':
@@ -242,7 +246,12 @@ def run_constrained_newsvendor(
         if not aleat_bool:
             M = 1
         
-        model_used.update_n_samples(n_samples=M)
+        if method_name == 'gp':
+            for model in model_gps:
+                model.update_n_samples(n_samples=M)
+            
+        else:
+            model_used.update_n_samples(n_samples=M)
      
         mse_loss = nn.MSELoss()
         
@@ -277,7 +286,18 @@ def run_constrained_newsvendor(
             y_test_batch = y_test_batch.to(dev_opt)
             y_test_noisy_batch = y_test_noisy_batch.to(dev_opt)
             
-            y_preds = model_used.forward_dist(x_test_batch, aleat_bool)
+            if method_name in ['ann','bnn']:
+                y_preds = model_used.forward_dist(x_test_batch, aleat_bool)
+                
+            elif method_name in ['gp']:
+                y_preds = torch.zeros_like(y_test_batch).unsqueeze(0).expand(
+                    M, y_test_batch.shape[0], y_test_batch.shape[1]).clone()
+                for k in range(0, len(model_gps)):
+                    y_preds[:,:,k] = model_gps[k].forward_dist(x_test_batch, aleat_bool).squeeze()
+                
+            else:
+                print('Model not found')
+                break
             
             y_preds = y_preds.squeeze()
             
