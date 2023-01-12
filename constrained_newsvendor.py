@@ -51,7 +51,7 @@ def run_constrained_newsvendor(
     if method_name == 'bnn':
         bnn = True   
         K = 1 # Hyperparameter for the training in ELBO loss
-        PLV = 1 # Hyperparameter for the prior in ELBO loss   
+        PLV = 1 # Prior in ELBO loss   
 
     model_name = method_name + '_constrained_'
     for i in range(2, len(sys.argv)):
@@ -64,7 +64,6 @@ def run_constrained_newsvendor(
     
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 350  # Epochs on training
-    
     
     if dev == torch.device('cuda'):
         BATCH_SIZE_LOADER = 256
@@ -79,13 +78,16 @@ def run_constrained_newsvendor(
         K = 1000 # to be same magnitude as the end loss 
         lr = 0.002
 
-
+    cpu_count = mp.cpu_count()
+    if dev == torch.device('cuda'):
+        print('Cuda found')
+        cpu_count = 1
 
     ##################################################################
     ##### Data #######################################################
     ##################################################################
 
-    nl=4.0
+    nl=4.0 # Change to increase/decrease conditional noise
     X, Y_original, _ = data_generator.data_4to8(
         N_train, noise_level=nl, seed_number=seed_number,
         uniform_input_space=False)
@@ -97,19 +99,13 @@ def run_constrained_newsvendor(
     tstd = torch.tensor(scaler.scale_).to(dev)
     joblib.dump(scaler, 'scaler_constrained.gz')
 
+    # Function to denormalize the data
     def inverse_transform(yy):
         return yy*tstd + tmean
 
     Y = scaler.transform(Y_original).copy()
-    #Y = Y_original
     X = torch.tensor(X, dtype=torch.float32)
     Y = torch.tensor(Y, dtype=torch.float32)
-
-    cpu_count = mp.cpu_count()
-    if dev == torch.device('cuda'):
-        print('Cuda found')
-        cpu_count = 1
-        
     data_train = data_generator.ArtificialDataset(X, Y)
     training_loader = torch.utils.data.DataLoader(
         data_train, batch_size=BATCH_SIZE_LOADER,
@@ -120,11 +116,9 @@ def run_constrained_newsvendor(
         N_valid, noise_level=nl, seed_number=seed_number+100,
         uniform_input_space=False)
     Y_val = scaler.transform(Y_val_original).copy()
-    #Y_val = Y_val_original
     X_val = torch.tensor(X_val, dtype=torch.float32)
     Y_val_original = torch.tensor(Y_val_original, dtype=torch.float32)
     Y_val = torch.tensor(Y_val, dtype=torch.float32)
-
     data_valid = data_generator.ArtificialDataset(X_val, Y_val)
     validation_loader = torch.utils.data.DataLoader(
         data_valid, batch_size=BATCH_SIZE_LOADER,
@@ -135,18 +129,21 @@ def run_constrained_newsvendor(
         N_test, noise_level=nl, seed_number=seed_number+200,
         uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
-    Y_test_original = torch.tensor(Y_test_original, dtype=torch.float32)
+    Y_test_original = torch.tensor(
+        Y_test_original, dtype=torch.float32)
     Y_noisy = torch.tensor(Y_noisy, dtype=torch.float32)
-
-    data_test = data_generator.ArtificialDataset(X_test, Y_test_original)
+    data_test = data_generator.ArtificialDataset(
+        X_test, Y_test_original)
     test_loader = torch.utils.data.DataLoader(
     data_test, batch_size=16,
     shuffle=False, num_workers=cpu_count)
     
-    data_test_noisy = data_generator.ArtificialNoisyDataset(X_test, Y_noisy)
+    data_test_noisy = data_generator.ArtificialNoisyDataset(
+        X_test, Y_noisy)
     test_noisy_loader = torch.utils.data.DataLoader(
     data_test_noisy, batch_size=16,
     shuffle=False, num_workers=cpu_count)
+    
     
     input_size = X.shape[1]
     output_size = Y.shape[1]
@@ -156,10 +153,14 @@ def run_constrained_newsvendor(
     params_t, _ = params.get_params(n_items, seed_number, dev)
 
     if method_learning == 'combined':
-        # Construct the solver
-        op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev)
-        op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, N_SAMPLES, dev)
+        # Construct the deterministic solver z*(y_mean or y_actual)
+        op_solver = cnu.SolveConstrainedNewsvendor(
+            params_t, 1, dev)
+        # Construct the stochastic solver z*(y_samples)
+        op_solver_dist = cnu.SolveConstrainedNewsvendor(
+            params_t, N_SAMPLES, dev)
 
+        # ANN baseline uses only z*(y_mean or y_actual)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
 
@@ -167,9 +168,7 @@ def run_constrained_newsvendor(
     ##### Model and Training #########################################
     ##################################################################
     
-    #model_name = 'weak_' + model_name
-    
-    
+    #GP Baseline model
     if method_name == 'gp':
         n_outputs = Y.shape[1]
         assert n_outputs >=1
@@ -183,22 +182,20 @@ def run_constrained_newsvendor(
             model_used = gp
         
     else:
+        #BNN Method model
         if method_name == 'bnn':
             h = StrongVariationalNet(
                 N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-            #h = WeakVariationalNet(
-            #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-            #lr = lr*10
 
+        #ANN Baseline model
         elif method_name == 'ann':
             h = StrongStandardNet(input_size, output_size).to(dev)
-            #h = WeakStandardNet(input_size, output_size).to(dev)
-            #lr = lr*10
-            K = 0
+            K = 0 # There is no K in ANN
 
         opt_h = torch.optim.Adam(h.parameters(), lr=lr)
         mse_loss = nn.MSELoss(reduction='none')
 
+        # Decoupled learning approach
         if method_learning == 'decoupled':
             train_NN = TrainDecoupled(
                             bnn = bnn,
@@ -212,6 +209,7 @@ def run_constrained_newsvendor(
                             dev=dev
                         )
 
+        # Combined learning approach (end-to-end loss)
         elif method_learning == 'combined':
             train_NN = TrainCombined(
                             bnn = bnn,
@@ -230,7 +228,7 @@ def run_constrained_newsvendor(
             print('check method_learning variable')
             quit()
 
-
+        # save the used model in a variable for the OP part
         model_used = train_NN.train(EPOCHS=EPOCHS)
 
 
@@ -244,13 +242,12 @@ def run_constrained_newsvendor(
         
     for M in M_SAMPLES:
         
+        # Updating the number of samples M_opt
         if not aleat_bool:
             M = 1
-        
         if method_name == 'gp':
             for model in model_gps:
                 model.update_n_samples(n_samples=M)
-            
         else:
             model_used.update_n_samples(n_samples=M)
      
@@ -264,9 +261,12 @@ def run_constrained_newsvendor(
             model_used = model_used.to(dev_opt)
             
         # Construct the solver again for the optimization part
-        op_solver = cnu.SolveConstrainedNewsvendor(params_t, 1, dev_opt)
-        op_solver_dist = cnu.SolveConstrainedNewsvendor(params_t, M, dev_opt)
-        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(params_t, 32, dev_opt)
+        op_solver = cnu.SolveConstrainedNewsvendor(
+            params_t, 1, dev_opt)
+        op_solver_dist = cnu.SolveConstrainedNewsvendor(
+            params_t, M, dev_opt)
+        op_solver_dist_noisy = cnu.SolveConstrainedNewsvendor(
+            params_t, 32, dev_opt)
         if not aleat_bool and method_name=='ann':
             op_solver_dist = op_solver
             model_used.update_n_samples(n_samples=1)
@@ -277,45 +277,62 @@ def run_constrained_newsvendor(
         mse_loss_result = 0
         n_batches = len(test_loader)
 
-        for i, (tdata, tndata) in tqdm(enumerate(zip(test_loader, test_noisy_loader))):
+        for i, (tdata, tndata) in tqdm(
+            enumerate(zip(test_loader, test_noisy_loader))):
             
             x_test_batch, y_test_batch = tdata
             _, y_test_noisy_batch = tndata
-            y_test_noisy_batch = torch.permute(y_test_noisy_batch, (1,0,2))
+            y_test_noisy_batch = torch.permute(
+                y_test_noisy_batch, (1,0,2))
                 
             x_test_batch = x_test_batch.to(dev_opt)
             y_test_batch = y_test_batch.to(dev_opt)
             y_test_noisy_batch = y_test_noisy_batch.to(dev_opt)
             
+            # Output predictions
             if method_name in ['ann','bnn']:
-                y_preds = model_used.forward_dist(x_test_batch, aleat_bool)
+                y_preds = model_used.forward_dist(
+                    x_test_batch, aleat_bool)
                 
             elif method_name in ['gp']:
-                y_preds = torch.zeros_like(y_test_batch).unsqueeze(0).expand(
-                    M, y_test_batch.shape[0], y_test_batch.shape[1]).clone()
+                y_preds = torch.zeros_like(
+                    y_test_batch).unsqueeze(0).expand(
+                    M, y_test_batch.shape[0], 
+                    y_test_batch.shape[1]).clone()
                 for k in range(0, len(model_gps)):
-                    y_preds[:,:,k] = model_gps[k].forward_dist(x_test_batch, aleat_bool).squeeze()
+                    y_preds[:,:,k] = model_gps[k].forward_dist(
+                        x_test_batch, aleat_bool).squeeze()
                 
             else:
                 print('Model not found')
                 break
             
+            # Denormalize predictions
             y_preds = y_preds.squeeze()
-            
             y_preds = inverse_transform(y_preds.to(dev))
 
+            # Compute MSE
             mse_loss_result += (mse_loss(
-                y_preds.mean(axis=0).to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
+                y_preds.mean(axis=0).to(dev_opt), 
+                y_test_batch.to(dev_opt))/n_batches).detach()
             
+            # Compute cost function based on predictions f(z*(y_pred))
             f_total += (op_solver_dist.end_loss_dist(
-                y_preds.to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()         
+                y_preds.to(dev_opt), 
+                y_test_batch.to(dev_opt))/n_batches).detach()         
             
+            # Compute cost function based on samples of 
+            # true distribution f(z*(y_pred)) 
             f_total_noisy += (op_solver_dist_noisy.end_loss_dist(
-                y_test_noisy_batch.to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
+                y_test_noisy_batch.to(dev_opt), 
+                y_test_batch.to(dev_opt))/n_batches).detach()
             
+            # Compute best cost function (based on observations)
             f_total_best += (op_solver.cost_fn(
-                y_test_batch.unsqueeze(0).to(dev_opt), y_test_batch.to(dev_opt))/n_batches).detach()
-                        
+                y_test_batch.unsqueeze(0).to(dev_opt), 
+                y_test_batch.to(dev_opt))/n_batches).detach()
+         
+        # Compute evaluation metrics regret and fair regret
         regret = f_total.item() - f_total_best.item()
         f_regret = f_total.item() - f_total_noisy.item()
 
@@ -352,10 +369,10 @@ if __name__ == '__main__':
     assert (len(sys.argv)==6)
     method_name = sys.argv[1] # ann or bnn
     method_learning = sys.argv[2] # decoupled or combined
-    nr_seeds = int(sys.argv[3]) # Average results through seeds
-    aleat_bool = bool(int(sys.argv[4])) # Modeling aleatoric uncert
-    N_SAMPLES = int(sys.argv[5])  # Sampling size while training
-    #M_SAMPLES = int(sys.argv[6])  # Sampling size while optimizing
+    nr_seeds = int(sys.argv[3]) # Average results through nr seeds
+    aleat_bool = bool(int(sys.argv[4])) # Modeling aleatoric uncert?
+    N_SAMPLES = int(sys.argv[5])  # Sampling size while training (M_train)
+    #M_SAMPLES = int(sys.argv[6])  # Sampling size while optimizing (M_opt)
     M_SAMPLES = [64, 32, 16, 8]
         
     mse_results_32 = []

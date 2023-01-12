@@ -57,7 +57,7 @@ def run_classic_newsvendor(
     if method_name == 'bnn':
         bnn = True   
         K = 1 # Hyperparameter for the training in ELBO loss
-        PLV = 1 # Hyperparameter for the prior in ELBO loss         
+        PLV = 1 # Prior in ELBO loss         
 
     model_name = method_name
     for i in range(2, len(sys.argv)):
@@ -70,8 +70,6 @@ def run_classic_newsvendor(
 
     BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 200  # Epochs on training
-
-    lr = 0.002
     
     #OP deterministic params
     cost_shortage=100
@@ -80,9 +78,8 @@ def run_classic_newsvendor(
         model_name = model_name \
         + f'_q{(cost_shortage)/(cost_shortage+cost_excess)}'
         cn = ClassicalNewsvendor(cost_shortage, cost_excess)
-        lr = 0.001
 
-    lr = 0.001
+    lr = 0.0015
     if method_learning == 'decoupled' and method_name == 'ann':
         lr = 0.0015
         EPOCHS = 350
@@ -99,17 +96,16 @@ def run_classic_newsvendor(
         lr = 0.0015
         EPOCHS = 350
         explr=0.99
-    if aleat_bool and method_name == 'ann':
-        lr = 0.005
-        EPOCHS = 600
-        explr=1.0
 
     ##################################################################
     ##### Data #######################################################
     ##################################################################
 
+    nl=1.0
     X, y_original, _ = data_generator.data_1to1(
-        N_train, noise_level=1, seed_number=seed_number, noise_type = noise_type,
+        N_train, noise_level=nl, 
+        seed_number=seed_number, 
+        noise_type = noise_type,
         uniform_input_space=False)
 
     # Output normalization
@@ -119,24 +115,24 @@ def run_classic_newsvendor(
     tstd = torch.tensor(scaler.scale_.item())
     joblib.dump(scaler, 'scaler.gz') # if you need to analyse
 
+    # Function to denormalize the data
     def inverse_transform(yy):
         return yy*tstd + tmean
 
     y = scaler.transform(y_original).copy()
-    #y = y_original
     X = torch.tensor(X, dtype=torch.float32)
     y = torch.tensor(y, dtype=torch.float32)
-
     data_train = data_generator.ArtificialDataset(X, y)
     training_loader = torch.utils.data.DataLoader(
         data_train, batch_size=BATCH_SIZE_LOADER,
         shuffle=False, num_workers=mp.cpu_count())
 
     X_val, y_val_original, _ = data_generator.data_1to1(
-        N_valid, noise_level=1, seed_number=seed_number + 100,  noise_type = noise_type, 
+        N_valid, noise_level=nl, 
+        seed_number=seed_number + 100,  
+        noise_type = noise_type, 
         uniform_input_space=False)
     y_val = scaler.transform(y_val_original).copy()
-    #y_val = y_val_original
     X_val = torch.tensor(X_val, dtype=torch.float32)
     y_val_original = torch.tensor(y_val_original, dtype=torch.float32)
     y_val = torch.tensor(y_val, dtype=torch.float32)
@@ -147,24 +143,23 @@ def run_classic_newsvendor(
         shuffle=False, num_workers=mp.cpu_count())
 
     X_test, y_test_original, y_true_noisy = data_generator.data_1to1(
-        N_test, noise_level=1, seed_number=seed_number+200, noise_type = noise_type, 
+        N_test, noise_level=nl, 
+        seed_number=seed_number+200, 
+        noise_type = noise_type, 
         uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     y_test_original = torch.tensor(y_test_original, dtype=torch.float32)
     
  
-        
     input_size = X.shape[1]
     output_size = y.shape[1]
 
-
-
+    
     ##################################################################
     ##### Model and Training #########################################
     ##################################################################
-    
-    #model_name = 'weak_' + model_name
-    
+        
+    #GP Baseline model
     if method_name == 'gp':
         gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
                     alpha_noise=0.1, white_noise=1, 
@@ -173,20 +168,20 @@ def run_classic_newsvendor(
         model_used = gp
     
     else:
+        #BNN Method model
         if method_name == 'bnn':
-            h = WeakVariationalNet(
+            h = VariationalNet(
                 N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
-            #h = VariationalNet(
-            #    N_SAMPLES, input_size, output_size, PLV, dev).to(dev)
 
+        #ANN Baseline model
         elif method_name == 'ann':
-            h = WeakStandardNet(input_size, output_size).to(dev)
-            #h = StandardNet(input_size, output_size).to(dev)
-            K = 0
+            h = StandardNet(input_size, output_size).to(dev)
+            K = 0 # There is no K in ANN
 
         opt_h = torch.optim.Adam(h.parameters(), lr=lr)
         mse_loss = nn.MSELoss(reduction='none')
 
+        # Decoupled learning approach
         if method_learning == 'decoupled':
             train_NN = TrainDecoupled(
                             bnn = bnn,
@@ -201,6 +196,7 @@ def run_classic_newsvendor(
                             explr=explr
                         )
 
+        # Combined learning approach (end-to-end loss)
         elif method_learning == 'combined':
             train_NN = TrainCombined(
                             bnn = bnn,
@@ -220,27 +216,29 @@ def run_classic_newsvendor(
             print('check method_learning variable')
             quit()
 
+        # save the used model in a variable for the OP part
         model_used = train_NN.train(EPOCHS=EPOCHS)
 
+        
+    ##################################################################
+    ##### Solving the Optimization Problem ###########################
+    ##################################################################
+        
     mser = []
     regr = []
     fregr = []
     for M in M_SAMPLES:
 
+        # Updating the number of samples M_opt
         model_used.update_n_samples(n_samples=M)
         y_pred = model_used.forward_dist(X_test, aleat_bool)[:,:,0]
         y_pred = inverse_transform(y_pred)
-
 
         mse_loss = nn.MSELoss()
         mse_loss_result = mse_loss(
             y_pred.mean(axis=0).squeeze(), 
             y_test_original.squeeze()
         ).item()
-
-        ##################################################################
-        ##### Solving the Optimization Problem ###########################
-        ##################################################################
 
         cost_excess = 900 #only for q=0.1
         cn2 = ClassicalNewsvendor(cost_shortage, cost_excess)
@@ -276,8 +274,8 @@ if __name__ == '__main__':
     noise_type = sys.argv[3] # gaussian or multimodal
     nr_seeds = int(sys.argv[4]) # Average results through seeds
     aleat_bool = bool(int(sys.argv[5])) # Modeling aleatoric uncert
-    N_SAMPLES = int(sys.argv[6])  # Sampling size while training
-    #M_SAMPLES = int(sys.argv[7])  # Sampling size while optimizing
+    N_SAMPLES = int(sys.argv[6])  # Sampling size while training (M_train)
+    #M_SAMPLES = int(sys.argv[7])  # Sampling size while optimizing (M_opt)
     
     M_SAMPLES = [2, 4, 8, 16, 32, 64, 512, 4096]
     
