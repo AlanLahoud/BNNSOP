@@ -5,6 +5,9 @@ import torch.nn as nn
 import pdb
 
 class VariationalLayer(nn.Module):
+    """
+    Class to create BNN Layers
+    """
     def __init__(self, 
                  input_size, output_size,
                  prior_mu, prior_rho,
@@ -27,9 +30,7 @@ class VariationalLayer(nn.Module):
                 mu_init_1, mu_init_2)).float()
         self.theta_rho = nn.Parameter(
             torch.Tensor(input_size, output_size).to(dev).uniform_(
-                rho_init, rho_init+1)).float()
-        
-        
+                rho_init, rho_init+1)).float()      
         
         # Defining some constants
         self.logsqrttwopi = torch.log(

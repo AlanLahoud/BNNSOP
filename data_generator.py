@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from sklearn import preprocessing
-import pdb
 
 class ArtificialDataset(torch.utils.data.Dataset):
     def __init__(self, X, y):
@@ -32,18 +31,25 @@ class ArtificialNoisyDataset(torch.utils.data.Dataset):
         return X_i, Y_i
 
 
-def data_1to1(N, noise_level=1, seed_number=42, noise_type='gaussian', uniform_input_space=False, add_yfair=False):
+def data_1to1(N, noise_level=1, seed_number=42, 
+              noise_type='gaussian', 
+              uniform_input_space=False, 
+              add_yfair=False):
     
     np.random.seed(seed_number)
-    
     if uniform_input_space:
         X = np.arange(-4, 4, 8/N)
     else:
-        X = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(3, 1, N-N//2)))
+        X = np.hstack((np.random.normal(-3, 1, N//2), 
+                       np.random.normal(3, 1, N-N//2)))
     
     def gen_output(X):
-        y_perfect = 5 + np.abs(np.abs(6*X)*np.sin(X) + np.sin(6*X)*(0.5*X))
-        # Noise
+        
+        # Nonlinear relation between X and Y
+        y_perfect = 5 + np.abs(
+            np.abs(6*X)*np.sin(X) + np.sin(6*X)*(0.5*X))
+        
+        # Input dependent Noise
         if noise_type == 'gaussian':
             n = np.where(X>3, 0, np.random.normal(0, noise_level, N))
             y = y_perfect + n*np.sin(X)*np.abs(X)*2
@@ -83,7 +89,9 @@ def data_1to1(N, noise_level=1, seed_number=42, noise_type='gaussian', uniform_i
 
 
 
-def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_yfair=False):
+def data_4to8(N, noise_level=1, seed_number=42, 
+              uniform_input_space=False, 
+              add_yfair=False):
 
     np.random.seed(seed_number)
     
@@ -93,21 +101,27 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
         x3 = np.arange(-4, 4, 8/N)
         x4 = np.arange(-4, 3, 7/N)
     else:
-        x1 = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(3, 1, N-N//2)))
-        x2 = np.hstack((np.random.normal(-4, 1, N//2), np.random.normal(4, 1, N-N//2)))
-        x3 = np.hstack((np.random.normal(-3, 0.7, N//2), np.random.normal(3, 0.7, N-N//2)))
-        x4 = np.hstack((np.random.normal(-3, 1, N//2), np.random.normal(1, 2, N-N//2)))
+        x1 = np.hstack((np.random.normal(-3, 1, N//2), 
+                        np.random.normal(3, 1, N-N//2)))
+        x2 = np.hstack((np.random.normal(-4, 1, N//2), 
+                        np.random.normal(4, 1, N-N//2)))
+        x3 = np.hstack((np.random.normal(-3, 0.7, N//2), 
+                        np.random.normal(3, 0.7, N-N//2)))
+        x4 = np.hstack((np.random.normal(-3, 1, N//2), 
+                        np.random.normal(1, 2, N-N//2)))
     
     def gen_output(x1, x2, x3, x4):
-        y1_perfect = np.maximum(10 + np.abs(x1)*np.sin(x2) + 4*np.sin(6*x3), 0)
-        y2_perfect = np.maximum(3 + np.abs(10*x2)*np.sin(x3)**2 + 2*np.sin(6*x1), 0)
-        y3_perfect = np.maximum(10 + np.abs(4*x3)**0.5*np.sin(x2) + 4*np.sin(2*x4), 0)
-        y4_perfect = np.maximum(7 + np.abs(6*x4)*np.sin(x1) + 2*np.sin(6*x2)**2, 0)
+        y1_perfect = np.maximum(
+            10 + np.abs(x1)*np.sin(x2) + 4*np.sin(6*x3), 0)
+        y2_perfect = np.maximum(
+            3 + np.abs(10*x2)*np.sin(x3)**2 + 2*np.sin(6*x1), 0)
+        y3_perfect = np.maximum(
+            10 + np.abs(4*x3)**0.5*np.sin(x2) + 4*np.sin(2*x4), 0)
+        y4_perfect = np.maximum(
+            7 + np.abs(6*x4)*np.sin(x1) + 2*np.sin(6*x2)**2, 0)
 
         y5_perfect = 5 + y1_perfect + y2_perfect
         y6_perfect = 5 + y2_perfect + y3_perfect
-        #y7_perfect = 5 + y3_perfect + y4_perfect
-        #y8_perfect = 5 + y4_perfect + y1_perfect
 
         n_gaussian_1 = np.random.normal(1, noise_level, N)
         n_gaussian_2 = np.random.normal(1, 0.5*noise_level, N)
@@ -120,8 +134,10 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
                  np.random.normal(2, noise_level, N-N//4))
             )
 
-        n_poisson_1 = np.random.poisson(lam=0.2*noise_level, size=N)
-        n_poisson_2 = np.random.poisson(lam=0.4*noise_level, size=N)
+        n_poisson_1 = np.random.poisson(
+            lam=0.2*noise_level, size=N)
+        n_poisson_2 = np.random.poisson(
+            lam=0.4*noise_level, size=N)
 
 
         y1 = np.maximum(y1_perfect + n_gaussian_1, 0)
@@ -131,10 +147,7 @@ def data_4to8(N, noise_level=1, seed_number=42, uniform_input_space=False, add_y
 
         y5 = np.maximum(y5_perfect + n_multimodal_1, 0)
         y6 = np.maximum(y6_perfect + n_gaussian_1, 0)
-        #y7 = np.maximum(y7_perfect + n_gaussian_2, 0)
-        #y8 = np.maximum(y8_perfect + n_poisson_2, 0)
-        
-        #Y = np.vstack((y1, y2, y3, y4, y5, y6, y7, y8)).T.round(3)
+
         Y = np.vstack((y1, y2, y3, y4, y5, y6)).T.round(3)
         return Y
     

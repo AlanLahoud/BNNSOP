@@ -6,24 +6,35 @@ from tqdm import tqdm
 import copy
 
 class TrainDecoupled():
+    """
+    Class to help on training process using the 
+    Decoupled Learning Approach (see paper).
+    """
     
-    def __init__(self, bnn, model, opt, loss_data, K, aleat_bool, training_loader, validation_loader, dev, explr=0.99):
-        self.model = model
+    def __init__(self, bnn, model, opt, loss_data, K, 
+                 aleat_bool, training_loader, 
+                 validation_loader, dev, explr=0.99):
+        self.model = model # Neural network (ANN or BNN)
         self.opt = opt
-        self.loss_data = loss_data
-        self.K = K
-        self.aleat_bool = aleat_bool
+        self.loss_data = loss_data # NLL loss
+        self.K = K # Useful only for BNN
+        self.aleat_bool = aleat_bool # True if modeling aleatoric uncer
         self.training_loader = training_loader
         self.validation_loader = validation_loader
-        self.bnn = bnn
+        self.bnn = bnn # True if BNN, False if ANN
         self.dev = dev
-        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=explr)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
+            opt, gamma=explr)
         
         self.logsqrttwopi = torch.log(
             torch.sqrt(2*torch.tensor(math.pi)))
       
     
     def train_one_epoch(self):
+        """
+        Update ANN or BNN weights with Decoupled Learning approach 
+        for one epoch. 
+        """
         data_running_loss = 0.
         kl_running_loss = 0.
 
@@ -37,36 +48,29 @@ class TrainDecoupled():
             y_batch = y_batch.to(self.dev)
             
             self.opt.zero_grad()
- 
             y_preds, rho_preds = self.model(x_batch)
 
             if self.bnn:
-                #pdb.set_trace()
-                #y_preds = y_preds.mean(axis=0)
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
-                
                 if self.aleat_bool:
-                    loss_data_ = self.loss_data(y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
+                    loss_data_ = self.loss_data(
+                        y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
                 else:
                     loss_data_ = self.loss_data(y_preds, y_batch)
-
-                #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
                 loss_data_ = loss_data_.mean(axis=1) #through batch
                 loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
 
             else:
-                
                 if self.aleat_bool:
-                    loss_data_ = self.loss_data(y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
+                    loss_data_ = self.loss_data(
+                        y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
                 else:
                     loss_data_ = self.loss_data(y_preds, y_batch)
-                
                 loss_data_ = loss_data_.mean(axis=0) #through batch
                 kl_loss_ = torch.tensor(0)
                 
             loss_data_ = loss_data_.mean(axis=-1) #through output dimension
-
             total_loss = loss_data_ + kl_loss_
             total_loss.backward()
 
@@ -82,6 +86,10 @@ class TrainDecoupled():
     
     
     def train(self, EPOCHS=150):
+        """
+        Update ANN or BNN weights with Decoupled Learning approach 
+        for EPOCHS epochs.
+        """
         epoch_number = 0
  
         avg_best_vloss = np.inf
@@ -89,7 +97,6 @@ class TrainDecoupled():
     
         for epoch in tqdm(range(EPOCHS)):
             
-
             self.model.train(True)
             avg_loss_data_loss, avg_kl_loss = self.train_one_epoch()
             avg_loss = avg_loss_data_loss + avg_kl_loss
@@ -105,40 +112,34 @@ class TrainDecoupled():
             else:
                 kl_loss_ = torch.tensor(0)
 
+            # Validation metrics
             for i, vdata in enumerate(self.validation_loader):
 
-                x_val_batch, y_val_batch = vdata
-                
+                x_val_batch, y_val_batch = vdata                
                 x_val_batch = x_val_batch.to(self.dev)
                 y_val_batch = y_val_batch.to(self.dev)
-
+                
                 y_val_preds, rho_val_preds = self.model(x_val_batch)
                 
                 if self.bnn:
-                    y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
-                    
+                    y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)                    
                     if self.aleat_bool:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
                     else:
-                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)
-                                     
+                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)                                     
                     loss_data_ = loss_data_.mean(axis=1) #through batch
                     loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
-                    #loss_data_ = loss_data_.min(axis=0).values.mean(axis=0) + loss_data_.min(axis=1).values.mean(axis=0)
                     
                 else:
                     if self.aleat_bool:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
                     else:
-                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)
-                        
+                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)                        
                     loss_data_ = loss_data_.mean() #through batch
                 
                 loss_data_ = loss_data_.mean(axis=-1) #through output dimension
-
                 loss_data_running_loss_v += loss_data_.detach()
-
-                
+              
             avg_vloss_data = (loss_data_running_loss_v/n_batches).item()
             avg_vklloss = (kl_loss_).item()
 
@@ -167,29 +168,41 @@ class TrainDecoupled():
 
             
 class TrainCombined():
-    
-    def __init__(self, bnn, model, opt, K, aleat_bool, training_loader, scaler, validation_loader, OP, dev, explr=0.99):
-        self.model = model
+    """
+    Class to help on training process using the 
+    Combined Learning Approach (see paper).
+    """
+    def __init__(self, bnn, model, opt, K, aleat_bool, 
+                 training_loader, scaler, validation_loader, 
+                 OP, dev, explr=0.99):
+        self.model = model # Neural network (ANN or BNN)
         self.opt = opt
-        self.K = K
-        self.aleat_bool = aleat_bool
+        self.K = K # Useful only for BNN
+        self.aleat_bool = aleat_bool # True if allow noise modeling
         self.training_loader = training_loader
-        self.scaler = scaler
+        self.scaler = scaler # To denormalize to solve the OP in the training process
         self.scaler_mean = torch.tensor(self.scaler.mean_, device=dev)
         self.scaler_std = torch.tensor(self.scaler.scale_, device=dev)
         self.validation_loader = validation_loader
-        self.bnn = bnn
-        self.end_loss = OP.end_loss
-        self.end_loss_dist = OP.end_loss_dist
+        self.bnn = bnn # True if BNN, False if ANN
+        self.end_loss = OP.end_loss # OP cost function
+        self.end_loss_dist = OP.end_loss_dist # OP expect cost function
         self.dev = dev
-        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=explr)
+        self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
+            opt, gamma=explr)
        
 
     def inverse_transform(self, inp):
+        """
+        Denormalize the data to solve the OP
+        """
         return inp*self.scaler_std + self.scaler_mean
        
     def train_one_epoch(self):
-
+        """
+        Update ANN or BNN weights with Combined Learning approach 
+        for one epoch. 
+        """
         n = len(self.training_loader.dataset)
         n_batches = len(self.training_loader)
 
@@ -214,20 +227,17 @@ class TrainCombined():
             y_preds = self.inverse_transform(y_preds)
             y_batch = self.inverse_transform(y_batch)
             if self.bnn:
-                #y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)                
+                #End loss: Expected OP cost value based on pred distrib
                 end_loss_ = self.end_loss_dist(y_preds, y_batch)
-                
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
                 total_loss = end_loss_ + kl_loss_
                 
-
             else:
-                end_loss_ = self.end_loss(y_preds, y_batch)
-                
+                #End loss: OP cost value based on pred value
+                end_loss_ = self.end_loss(y_preds, y_batch)                
                 kl_loss_ = torch.tensor(0)
                 total_loss = end_loss_ + kl_loss_
                 
-
             total_loss.backward()
             self.opt.step()
 
@@ -242,6 +252,10 @@ class TrainCombined():
     
     
     def train(self, EPOCHS=150):
+        """
+        Update ANN or BNN weights with Combined Learning approach 
+        for EPOCHS epochs. 
+        """
         epoch_number = 0
         
         best_loss = np.inf
@@ -265,6 +279,7 @@ class TrainCombined():
             else:
                 kl_loss_val = torch.tensor(0)
             
+            # Validation metrics
             for i, vdata in enumerate(self.validation_loader):
 
                 x_val_batch, y_val_batch = vdata
@@ -282,7 +297,6 @@ class TrainCombined():
                 y_val_preds = self.inverse_transform(y_val_preds)
                 y_val_batch = self.inverse_transform(y_val_batch)
                 if self.bnn:
-                    #y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)
                     total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
 
                 else:

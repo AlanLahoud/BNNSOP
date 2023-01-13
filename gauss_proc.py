@@ -4,7 +4,10 @@ from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 import torch
 from sklearn.base import clone
 
-class GP():    
+class GP(): 
+    """
+    Class that uses sklearn library to create a GP model.  
+    """
     def __init__(self, length_scale, length_scale_bounds, 
                  alpha_noise, white_noise, n_restarts_optimizer):
         self.ls = length_scale
@@ -19,20 +22,27 @@ class GP():
         self.M = 512
     
     def define_kernel(self):
+        """
+        Defines the RBF kernel + White noise Kernel
+        """
         return RBF(self.ls, self.lsbs) + WhiteKernel(
             noise_level=self.wn, 
             noise_level_bounds=(self.wn/100, self.wn*100))
     
     def update_n_samples(self, n_samples):
+        """
+        Update number of samples when predicting samples given input
+        """
         self.M = n_samples
     
     def gp_fit(self, X, y):
         self.gp_reg.fit(X, y)
         return self.gp_reg
-
-        
         
     def forward_dist(self, X_test, aleat_bool):
+        """
+        Predict M samples given GP trained model and input X
+        """
         try:
             X_test = X_test.to('cpu')
         except:
