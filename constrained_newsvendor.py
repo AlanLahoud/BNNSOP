@@ -3,6 +3,7 @@ import pandas as pd
 import random
 import joblib
 import sys
+import os
 
 from tqdm import tqdm
 
@@ -308,7 +309,8 @@ def run_constrained_newsvendor(
                 break
             
             # Denormalize predictions
-            y_preds = y_preds.squeeze()
+            if method_name in ['bnn','gp']:
+                y_preds = y_preds.squeeze()
             y_preds = inverse_transform(y_preds.to(dev))
 
             # Compute MSE
