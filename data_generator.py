@@ -31,6 +31,8 @@ class ArtificialNoisyDataset(torch.utils.data.Dataset):
         return X_i, Y_i
 
 
+# Creating a nonlinear (x, y) data
+# with nonlinear relation and noise
 def data_1to1(N, noise_level=1, seed_number=42, 
               noise_type='gaussian', 
               uniform_input_space=False, 
@@ -88,7 +90,8 @@ def data_1to1(N, noise_level=1, seed_number=42,
     return X, y, y_noisy
 
 
-
+# Creating a nonlinear (X, Y) data
+# with nonlinear relation and noise
 def data_4to8(N, noise_level=1, seed_number=42, 
               uniform_input_space=False, 
               add_yfair=False):

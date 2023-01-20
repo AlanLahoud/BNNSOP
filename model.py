@@ -2,7 +2,10 @@ import math
 import torch
 import torch.nn as nn
 
-import pdb
+# This code defines 2 ANNs and 2 BNNs
+# 1 of each is using for each experiment
+# Because we needed a more complex network
+# for the Quadratic Programming experiment
 
 class VariationalLayer(nn.Module):
     """
@@ -67,8 +70,6 @@ class VariationalLayer(nn.Module):
             w, self.theta_mu, self.theta_rho) 
     
     def kl_divergence_layer(self):
-        #theta_mu = self.theta_mu
-        #theta_rho = self.theta_rho
         w = self.sample_weight()
         Q = self.variational(w)
         P = self.prior(w)
@@ -76,8 +77,6 @@ class VariationalLayer(nn.Module):
         return KL
     
     def forward(self, x_layer):
-        #theta_mu = self.theta_mu
-        #theta_rho = self.theta_rho
         w = self.sample_weight().to(self.dev)    
         x_next_layer = torch.bmm(x_layer.to(self.dev), w[:, :-1, :]) + w[:,-1,:].unsqueeze(1)
         return x_next_layer
@@ -89,7 +88,7 @@ class VariationalNet(nn.Module):
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
-        # Hidden layer sizes, if you add a layer you have to modify the code below
+        # Hidden layer sizes
         hl_sizes = [64, 32] 
         mu_init = 0.2
         rho_init=-5
@@ -119,7 +118,7 @@ class VariationalNet(nn.Module):
         x = self.act1(x)
 
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
+        rho = self.linear4_2(x)
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):
@@ -149,61 +148,7 @@ class VariationalNet(nn.Module):
         self.linear4.n_samples = n_samples
         self.linear4_2.n_samples = n_samples
         
-          
-class WeakVariationalNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv,dev):
-        super().__init__()
-        self.output_type_dist = True
-        self.n_samples = n_samples
-        self.act1 = nn.ReLU()
-        # Hidden layer sizes, if you add a layer you have to modify the code below
-        hl_sizes = [8] 
-        mu_init=0.2
-        rho_init=-5
-        self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear2_2 = VariationalLayer(hl_sizes[0], output_size, 0, plv, n_samples, dev,  -0.0001, 0.0001, rho_init-2)
-        self.neurons = (
-            (input_size+1)*hl_sizes[0] 
-            + 2*(hl_sizes[0]+1)*output_size
-        )
-
-    
-    def forward(self, x):
-        x = torch.unsqueeze(x, 0)
-        x = x.expand((self.n_samples, x.shape[1], x.shape[2]))
-        x = self.linear1(x)
-        x = self.act1(x)
-
-        y_avg = self.linear2(x)
-        rho = self.linear2_2(x) #forcing low uncertainty in the beginning
-        return y_avg, rho
-    
-    def forward_dist(self, x, aleat_bool):
-        # Considering epistemic (if BNN) and aleatoric uncertainty
-        if aleat_bool:
-            y_dist = torch.normal(self(x)[0], torch.sqrt(torch.exp(self(x)[1])))
-        else:
-            y_dist = self(x)[0]
-            
-        return y_dist
-    
-    def kl_divergence_NN(self):
-        kl = (
-            self.linear1.kl_divergence_layer() 
-            + self.linear2.kl_divergence_layer()
-            + self.linear2_2.kl_divergence_layer()
-        )/self.neurons
-        return kl
-    
-    def update_n_samples(self, n_samples):
-        self.n_samples = n_samples
-        self.linear1.n_samples = n_samples
-        self.linear2.n_samples = n_samples
-        self.linear2_2.n_samples = n_samples
-
         
-
 class StandardNet(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
@@ -225,7 +170,7 @@ class StandardNet(nn.Module):
         x = self.linear3(x)
         x = self.act1(x)
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
+        rho = self.linear4_2(x)
         return y_avg, rho  
     
     def update_n_samples(self, n_samples):
@@ -268,7 +213,7 @@ class StrongStandardNet(nn.Module):
         x = self.linear3(x)
         x = self.act1(x)
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
+        rho = self.linear4_2(x)
         return y_avg, rho   
     
     def update_n_samples(self, n_samples):
@@ -288,46 +233,7 @@ class StrongStandardNet(nn.Module):
             y_dist = y
 
         return y_dist
-    
-
-        
-class WeakStandardNet(nn.Module):
-    def __init__(self, input_size, output_size):
-        super().__init__()
-        self.n_samples = 1
-     
-        hl_sizes = [16] 
-        self.act1 = nn.ReLU()
-        self.linear1 = nn.Linear(input_size, hl_sizes[0])
-        self.linear2 = nn.Linear(hl_sizes[0], output_size)
-        self.linear2_2 = nn.Linear(hl_sizes[0], output_size)
-        
-    def forward(self, x):
-        x = self.linear1(x)
-        x = self.act1(x)
-        y_avg = self.linear2(x)
-        rho = self.linear2_2(x)
-        return y_avg, rho #forcing low uncertainty in the beginning   
-    
-    def update_n_samples(self, n_samples):
-        self.n_samples = n_samples
-        
-    def forward_dist(self, x, aleat_bool):
-        y, rho = self(x)
-        y = y.unsqueeze(0)
-        y = y.expand(self.n_samples, -1, -1).clone()
-        rho = rho.unsqueeze(0)
-        rho = rho.expand(self.n_samples, -1, -1).clone()
-        
-        # Considering aleatoric uncertainty
-        if aleat_bool:
-            y_dist = torch.normal(y, torch.sqrt(torch.exp(rho)))
-        else:
-            y_dist = y
-
-        return y_dist
-        
-        
+          
 
 class StrongVariationalNet(nn.Module):
     def __init__(self, n_samples, input_size, output_size, plv,dev):
@@ -335,7 +241,7 @@ class StrongVariationalNet(nn.Module):
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
-        # Hidden layer sizes, if you add a layer you have to modify the code below
+        # Hidden layer sizes
         hl_sizes = [512, 128] 
         mu_init=0.1
         rho_init=-5
@@ -365,7 +271,7 @@ class StrongVariationalNet(nn.Module):
         x = self.act1(x)
 
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x) #forcing low uncertainty in the beginning
+        rho = self.linear4_2(x)
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):
@@ -393,11 +299,4 @@ class StrongVariationalNet(nn.Module):
         self.linear2.n_samples = n_samples
         self.linear3.n_samples = n_samples
         self.linear4.n_samples = n_samples
-        self.linear4_2.n_samples = n_samples   
-        
-        
-        
-        
-        
-        
-        
+        self.linear4_2.n_samples = n_samples        

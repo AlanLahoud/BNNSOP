@@ -2,6 +2,10 @@ import torch
 from qpth.qp import QPFunction
 
 class SolveConstrainedNewsvendor():
+    """
+    Quadratic Newsvendor Stochastic Optimization Problem class.
+    Init with deterministic parameters params_t and solve it for n_samples.
+    """
     def __init__(self, params_t, n_samples, dev):
         super(SolveConstrainedNewsvendor, self).__init__()
             
