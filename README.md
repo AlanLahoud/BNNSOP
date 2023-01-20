@@ -8,7 +8,7 @@ This project uses Machine Learning and Stochastic Mathematical Programming techn
 ### B. How to run? 
 There are two main files to run. "classic_newsvendor.py" for the Classical Newsvendor experiment and "constrained_newsvendor.py" for the Quadratic Programming version of the Newsvendor experiment. These two files requires arguments from command line and we explain it below:
 
- #### B.1. classic_newsvendor.py*
+ #### B.1. classic_newsvendor.py
 
  ###### Model/method    
  Possible values: "ann", "bnn", "gp"
@@ -33,7 +33,7 @@ There are two main files to run. "classic_newsvendor.py" for the Classical Newsv
     python3 classic_newsvendor.py bnn decoupled gaussian 3 16
 
 
- #### B.2. constrained_newsvendor.py*
+ #### B.2. constrained_newsvendor.py
 
  ###### Model/method
  Possible values: "ann", "bnn", "gp"
