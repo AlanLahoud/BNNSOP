@@ -22,7 +22,7 @@ import os
 # Utils
 import data_generator
 from gauss_proc import GP
-from model import VariationalLayer, VariationalNet, StandardNet, WeakVariationalNet, WeakStandardNet
+from model import VariationalLayer, VariationalNet, StandardNet
 from train import TrainDecoupled, TrainCombined
 from classical_newsvendor_utils import ClassicalNewsvendor
 

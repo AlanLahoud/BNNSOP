@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler
 import data_generator
 import params_newsvendor as params
 from gauss_proc import GP
-from model import VariationalLayer, VariationalNet, StrongStandardNet, StrongVariationalNet, WeakVariationalNet, WeakStandardNet
+from model import VariationalLayer, StrongStandardNet, StrongVariationalNet
 from train import TrainDecoupled, TrainCombined
 import constrained_newsvendor_utils as cnu
 
@@ -366,8 +366,8 @@ if __name__ == '__main__':
         dev = torch.device('cuda') 
 
         
-    assert (len(sys.argv)==6)
-    method_name = sys.argv[1] # ann or bnn
+    assert (len(sys.argv)==5)
+    method_name = sys.argv[1] # ann or bnn or gp
     method_learning = sys.argv[2] # decoupled or combined
     nr_seeds = int(sys.argv[3]) # Average results through nr seeds
     #aleat_bool = bool(int(sys.argv[4])) # ToDo: implement ANN with 1
