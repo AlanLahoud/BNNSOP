@@ -370,11 +370,15 @@ if __name__ == '__main__':
     method_name = sys.argv[1] # ann or bnn
     method_learning = sys.argv[2] # decoupled or combined
     nr_seeds = int(sys.argv[3]) # Average results through nr seeds
-    aleat_bool = bool(int(sys.argv[4])) # Modeling aleatoric uncert?
-    N_SAMPLES = int(sys.argv[5])  # Sampling size while training (M_train)
-    #M_SAMPLES = int(sys.argv[6])  # Sampling size while optimizing (M_opt)
-    M_SAMPLES = [64, 32, 16, 8]
-        
+    #aleat_bool = bool(int(sys.argv[4])) # ToDo: implement ANN with 1
+    N_SAMPLES = int(sys.argv[4])  # Sampling size while training (M_train)
+    M_SAMPLES = [64, 32, 16, 8] # Sampling size while optimizing (M_opt)
+    
+    # Aleatoric Uncertainty Modeling
+    aleat_bool=True
+    if method_name == 'ann':
+        aleat_bool=False
+  
     mse_results_32 = []
     mse_results_16 = []
     mse_results_8 = []
@@ -421,7 +425,8 @@ if __name__ == '__main__':
         ##########################################################
         ##### Saving model and results ###########################
         ##########################################################
-    
+        if not os.path.isdir("./models"):   
+            os.makedirs("./models") 
         torch.save(model_used, f'./models/{model_name}.pkl')  
     
     df_total = pd.DataFrame(data={
@@ -490,5 +495,7 @@ if __name__ == '__main__':
     print('FREG16: ', round(freg16_avg, 5), '(', round(freg16_std, 5), ')')
     print('FREG8: ', round(freg8_avg, 5), '(', round(freg8_std, 5), ')')
     print('FREG4: ', round(freg4_avg, 5), '(', round(freg4_std, 5), ')')
-        
+                
+    if not os.path.isdir("./newsvendor_results"):   
+        os.makedirs("./newsvendor_results") 
     df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')

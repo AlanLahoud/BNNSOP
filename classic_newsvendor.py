@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 import joblib
+import os
 
 # Utils
 import data_generator
@@ -268,16 +269,19 @@ if __name__ == '__main__':
         is_cuda = True
         dev = torch.device('cuda') 
     
-    assert (len(sys.argv)==7)
-    method_name = sys.argv[1] # ann or bnn
+    assert (len(sys.argv)==6)
+    method_name = sys.argv[1] # ann or bnn or gp
     method_learning = sys.argv[2] # decoupled or combined
     noise_type = sys.argv[3] # gaussian or multimodal
     nr_seeds = int(sys.argv[4]) # Average results through seeds
-    aleat_bool = bool(int(sys.argv[5])) # Modeling aleatoric uncert
-    N_SAMPLES = int(sys.argv[6])  # Sampling size while training (M_train)
-    #M_SAMPLES = int(sys.argv[7])  # Sampling size while optimizing (M_opt)
+    #aleat_bool = bool(int(sys.argv[5])) # ToDo: implement ANN with 1
+    N_SAMPLES = int(sys.argv[5])  # Sampling size while training (M_train)
+    M_SAMPLES = [2, 4, 8, 16, 32, 64, 512, 4096] # while optimizing (M_opt)
     
-    M_SAMPLES = [2, 4, 8, 16, 32, 64, 512, 4096]
+    # Aleatoric Uncertainty Modeling
+    aleat_bool=True
+    if method_name == 'ann':
+        aleat_bool=False
     
     df_total = pd.DataFrame()
     for seed_number in range(0, nr_seeds):
@@ -305,12 +309,13 @@ if __name__ == '__main__':
                
         ##############################################################
         ##### Saving model and results ###############################
-        ##############################################################
-        
+        ##############################################################        
+
+        if not os.path.isdir("./models"):   
+            os.makedirs("./models")        
         torch.save(model_used, 
                    f'./models/{model_name}_{seed_number}.pkl') 
          
-
     cols_mse = [c for c in df_total.columns.tolist() if 'MSE' in c]
     cols_nr = [c for c in df_total.columns.tolist() if 'REGRET' in c]
     cols_fnr = [c for c in df_total.columns.tolist() if 'FR' in c]
@@ -330,5 +335,6 @@ if __name__ == '__main__':
     fnr01_std = df_total[cols_fnr].std(axis=1)
     print('FR 0.1: ', round(fnr01_mean, 5), '(', round(fnr01_std, 5), ')')
     
-
+    if not os.path.isdir("./newsvendor_results"):   
+        os.makedirs("./newsvendor_results")  
     df_total.to_csv(f'./newsvendor_results/{model_name}_nr.csv')
