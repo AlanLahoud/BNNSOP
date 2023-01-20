@@ -11,20 +11,25 @@ There are two main files to run. "classic_newsvendor.py" for the Classical Newsv
  ##### B.1. classic_newsvendor.py*
 
  - Model/method
+    
     Possible values: "ann", "bnn", "gp"
     Note that "ann" and "gp" are baselines
 
  - Method of learning
+    
     Possible values: "decoupled", "combined"
     if "gp" was chosen, decoupled is the only option
 
  - Noise type while creating synthetic data
+    
     Possible values: "gaussian", "multimodal"
 
  - Number of seeds (how many times it runs to provide results average)
+    
     Possible values: Any integer >= 1 (but not too high), try 3 to 10
 
  - Number of output samples of the BNN while training (M_train)
+    
     Possible values: Any integer >= 1 (but not too high). if using combined approach, 
     this value can't be high due to complexity. If using ANN or GP, this value does not matter.
 
@@ -33,20 +38,24 @@ There are two main files to run. "classic_newsvendor.py" for the Classical Newsv
     python3 classic_newsvendor.py bnn decoupled gaussian 3 16
 
 
- #### B.2. constrained_newsvendor.py*
+ ##### B.2. constrained_newsvendor.py*
 
  - Model/method
+    
     Possible values: "ann", "bnn", "gp"
     Note that "ann" and "gp" are baselines
 
  - Method of learning
+    
     Possible values: "decoupled", "combined"
     if "gp" was chosen, decoupled is the only option
 
  - Number of seeds (how many times it runs to provide results average)
+    
     Possible values: Any integer >= 1 (but not too high), try 3 to 10
 
  - Number of output samples of the BNN while training (M_train)
+    
     Possible values: Any integer >= 1 (but not too high). if using combined approach, 
     this value can't be high due to complexity. If using ANN or GP, this value does not matter.
 
