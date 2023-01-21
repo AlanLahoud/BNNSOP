@@ -63,9 +63,10 @@ def run_constrained_newsvendor(
     N_valid = 2000
     N_test = 2000
     
-    BATCH_SIZE_LOADER = 32 # Standard batch size
+    #BATCH_SIZE_LOADER = 32 # Standard batch size
     EPOCHS = 350  # Epochs on training
     
+    BATCH_SIZE_LOADER = 256 # Standard batch size
     if dev == torch.device('cuda'):
         BATCH_SIZE_LOADER = 256
     
