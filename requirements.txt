@@ -1,8 +1,8 @@
 joblib==1.1.0
-matplotlib==3.3.4
 numpy==1.22.3
 pandas==1.4.1
 cvxpy
 qpth==0.0.15
-scikit_learn==1.1.2
+scikit_learn==1.2.0
 torch==1.12.1
+tqdm==4.64.0
