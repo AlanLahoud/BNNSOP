@@ -96,7 +96,7 @@ class VariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.00001, 0.00001, rho_init-3)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
@@ -249,7 +249,7 @@ class StrongVariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0000001, 0.0000001, rho_init-5)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]

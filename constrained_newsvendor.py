@@ -58,27 +58,31 @@ def run_constrained_newsvendor(
     for i in range(2, len(sys.argv)):
         model_name += '_'+sys.argv[i]
     model_name += '_'+ str(seed_number)
+    
+    pre_train = False
        
-    N_train = 500
-    N_valid = 200
-    N_test = 200
+    N_train = 1200
+    N_valid = 600
+    N_test = 400
     
     #BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 100  # Epochs on training
+    EPOCHS = 200  # Epochs on training
     
-    BATCH_SIZE_LOADER = 64 # Standard batch size
+    BATCH_SIZE_LOADER = 128 # Standard batch size
     if dev == torch.device('cuda'):
-        BATCH_SIZE_LOADER = 64
+        BATCH_SIZE_LOADER = 128
     
     if method_learning == 'decoupled' and method_name == 'ann':
-        lr = 0.002
+        lr = 0.0008
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.002
+        lr = 0.0008
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.002
+        lr = 0.0008
     if method_learning == 'combined' and method_name == 'bnn':
+        EPOCHS = EPOCHS - 20
+        pre_train = True
         K = 1000 # to be same magnitude as the end loss 
-        lr = 0.002
+        lr = 0.0003
 
     cpu_count = mp.cpu_count()
     if dev == torch.device('cuda'):
@@ -89,7 +93,7 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    nl=4.0 # Change to increase/decrease conditional noise
+    nl=2.0 # Change to increase/decrease conditional noise
     X, Y_original, _ = data_generator.data_4to8(
         N_train, noise_level=nl, seed_number=seed_number,
         uniform_input_space=False)
@@ -194,9 +198,25 @@ def run_constrained_newsvendor(
             h = StrongStandardNet(input_size, output_size).to(dev)
             K = 0 # There is no K in ANN
 
-        opt_h = torch.optim.Adam(h.parameters(), lr=lr)
+        opt_h = torch.optim.Adam(h.parameters(), lr=lr, weight_decay=10e-6)
         mse_loss = nn.MSELoss(reduction='none')
 
+           
+        if pre_train:
+            pre = TrainDecoupled(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            loss_data=mse_loss,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            validation_loader=validation_loader,
+                            dev=dev
+                        )
+            h = pre.train(EPOCHS=20)
+            opt_h = torch.optim.Adam(h.parameters(), lr=lr)
+        
         # Decoupled learning approach
         if method_learning == 'decoupled':
             train_NN = TrainDecoupled(
@@ -229,7 +249,8 @@ def run_constrained_newsvendor(
         else:
             print('check method_learning variable')
             quit()
-
+        
+            
         # save the used model in a variable for the OP part
         model_used = train_NN.train(EPOCHS=EPOCHS)
 
@@ -376,6 +397,7 @@ if __name__ == '__main__':
     #aleat_bool = bool(int(sys.argv[4])) # ToDo: implement ANN with 1
     N_SAMPLES = int(sys.argv[4])  # Sampling size while training (M_train)
     M_SAMPLES = [64, 32, 16, 8] # Sampling size while optimizing (M_opt)
+    M_SAMPLES = [16, 8, 6, 4]
     
     # Aleatoric Uncertainty Modeling
     aleat_bool=True

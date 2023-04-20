@@ -30,7 +30,7 @@ class TrainDecoupled():
             torch.sqrt(2*torch.tensor(math.pi)))
       
     
-    def train_one_epoch(self):
+    def train_one_epoch(self, start_rho):
         """
         Update ANN or BNN weights with Decoupled Learning approach 
         for one epoch. 
@@ -53,8 +53,10 @@ class TrainDecoupled():
             if self.bnn:
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 if self.aleat_bool:
-                    loss_data_ = self.loss_data(
-                        y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
+                    loss_data_ = self.loss_data(y_preds, y_batch)
+                    if start_rho:
+                        loss_data_ = loss_data_*torch.exp(-rho_preds) + rho_preds
+                        
                 else:
                     loss_data_ = self.loss_data(y_preds, y_batch)
                 loss_data_ = loss_data_.mean(axis=1) #through batch
@@ -98,7 +100,13 @@ class TrainDecoupled():
         for epoch in tqdm(range(EPOCHS)):
             
             self.model.train(True)
-            avg_loss_data_loss, avg_kl_loss = self.train_one_epoch()
+            
+            start_rho = False
+            
+            if epoch>50:
+                start_rho = True
+                
+            avg_loss_data_loss, avg_kl_loss = self.train_one_epoch(start_rho)
             avg_loss = avg_loss_data_loss + avg_kl_loss
 
             self.model.train(False)
