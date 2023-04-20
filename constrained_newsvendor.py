@@ -214,7 +214,7 @@ def run_constrained_newsvendor(
                         )
 
         # Combined learning approach (end-to-end loss)
-        elif method_learning == 'combined':
+        elif method_learning == 'combined': 
             train_NN = TrainCombined(
                             bnn = bnn,
                             model=h,
@@ -233,6 +233,21 @@ def run_constrained_newsvendor(
             quit()
 
         # save the used model in a variable for the OP part
+        model_used = train_NN.train(EPOCHS=EPOCHS)
+        
+        train_NN = TrainCombined(
+                            bnn = bnn,
+                            model=model_used,
+                            opt=opt_h,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            scaler=scaler,
+                            validation_loader=validation_loader,
+                            OP=op_solver_dist,
+                            dev=dev
+                        )
+        
         model_used = train_NN.train(EPOCHS=EPOCHS)
 
 
