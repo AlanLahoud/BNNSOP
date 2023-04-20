@@ -241,6 +241,7 @@ def run_constrained_newsvendor(
         # Construct the stochastic solver z*(y_samples)
         op_solver_dist = cnu.SolveConstrainedNewsvendor(
             params_t, N_SAMPLES, dev)
+        opt_h = torch.optim.Adam(h.parameters(), lr=0.00002)
         train_NN = TrainCombined(
                             bnn = bnn,
                             model=model_used,
