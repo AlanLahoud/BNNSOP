@@ -235,6 +235,12 @@ def run_constrained_newsvendor(
         # save the used model in a variable for the OP part
         model_used = train_NN.train(EPOCHS=EPOCHS)
         
+        
+        op_solver = cnu.SolveConstrainedNewsvendor(
+            params_t, 1, dev)
+        # Construct the stochastic solver z*(y_samples)
+        op_solver_dist = cnu.SolveConstrainedNewsvendor(
+            params_t, N_SAMPLES, dev)
         train_NN = TrainCombined(
                             bnn = bnn,
                             model=model_used,
