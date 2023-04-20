@@ -59,26 +59,30 @@ def run_constrained_newsvendor(
         model_name += '_'+sys.argv[i]
     model_name += '_'+ str(seed_number)
        
-    N_train = 4000
-    N_valid = 2000
-    N_test = 2000
+    n_items = 8
+    bs = 32
+    
+    
+    N_train = 12*bs*n_items
+    N_valid = 4*bs*n_items
+    N_test = 4*bs*n_items
     
     #BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 350  # Epochs on training
+    EPOCHS = 20  # Epochs on training
     
-    BATCH_SIZE_LOADER = 256 # Standard batch size
+    BATCH_SIZE_LOADER = bs*n_items # Standard batch size
     if dev == torch.device('cuda'):
-        BATCH_SIZE_LOADER = 256
+        BATCH_SIZE_LOADER = bs*n_items
     
     if method_learning == 'decoupled' and method_name == 'ann':
         lr = 0.002
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.002
+        lr = 0.0002
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.002
     if method_learning == 'combined' and method_name == 'bnn':
         K = 1000 # to be same magnitude as the end loss 
-        lr = 0.002
+        lr = 0.0002
 
     cpu_count = mp.cpu_count()
     if dev == torch.device('cuda'):
@@ -89,11 +93,11 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    nl=4.0 # Change to increase/decrease conditional noise
-    X, Y_original, _ = data_generator.data_4to8(
-        N_train, noise_level=nl, seed_number=seed_number,
-        uniform_input_space=False)
-
+    nl=0.2 # Change to increase/decrease conditional noise
+    X, Y_original, _ = data_generator.generate_dataset(
+        N_train, noise_level=nl, 
+        seed_number=seed_number)
+    
     # Output normalization
     scaler = StandardScaler()
     scaler.fit(Y_original)
@@ -111,12 +115,12 @@ def run_constrained_newsvendor(
     data_train = data_generator.ArtificialDataset(X, Y)
     training_loader = torch.utils.data.DataLoader(
         data_train, batch_size=BATCH_SIZE_LOADER,
-        shuffle=False, num_workers=cpu_count)
+        shuffle=True, num_workers=cpu_count)
 
     
-    X_val, Y_val_original, _ = data_generator.data_4to8(
-        N_valid, noise_level=nl, seed_number=seed_number+100,
-        uniform_input_space=False)
+    X_val, Y_val_original, _ = data_generator.generate_dataset(
+        N_valid, noise_level=nl, 
+        seed_number=seed_number+100)
     Y_val = scaler.transform(Y_val_original).copy()
     X_val = torch.tensor(X_val, dtype=torch.float32)
     Y_val_original = torch.tensor(Y_val_original, dtype=torch.float32)
@@ -127,9 +131,9 @@ def run_constrained_newsvendor(
         shuffle=False, num_workers=cpu_count)
 
     
-    X_test, Y_test_original, Y_noisy = data_generator.data_4to8(
-        N_test, noise_level=nl, seed_number=seed_number+200,
-        uniform_input_space=False, add_yfair=True)
+    X_test, Y_test_original, Y_noisy = data_generator.generate_dataset(
+        N_valid, noise_level=nl, 
+        seed_number=seed_number+200, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     Y_test_original = torch.tensor(
         Y_test_original, dtype=torch.float32)
@@ -146,12 +150,10 @@ def run_constrained_newsvendor(
     data_test_noisy, batch_size=16,
     shuffle=False, num_workers=cpu_count)
     
-    
     input_size = X.shape[1]
     output_size = Y.shape[1]
 
     #OP deterministic params
-    n_items = output_size
     params_t, _ = params.get_params(n_items, seed_number, dev)
 
     if method_learning == 'combined':
@@ -308,12 +310,17 @@ def run_constrained_newsvendor(
             else:
                 print('Model not found')
                 break
+           
             
             # Denormalize predictions
             if method_name in ['bnn','gp']:
                 y_preds = y_preds.squeeze()
             y_preds = inverse_transform(y_preds.to(dev))
 
+            y_preds = y_preds.reshape(M, -1, n_items)
+            y_test_batch = y_test_batch.reshape(-1, n_items)
+            y_test_noisy_batch = y_test_noisy_batch.reshape(y_test_noisy_batch.shape[0], -1, n_items)           
+            
             # Compute MSE
             mse_loss_result += (mse_loss(
                 y_preds.mean(axis=0).to(dev_opt), 
@@ -376,6 +383,8 @@ if __name__ == '__main__':
     #aleat_bool = bool(int(sys.argv[4])) # ToDo: implement ANN with 1
     N_SAMPLES = int(sys.argv[4])  # Sampling size while training (M_train)
     M_SAMPLES = [64, 32, 16, 8] # Sampling size while optimizing (M_opt)
+    M_SAMPLES = [32, 16, 8, 4]
+    M_SAMPLES = [16, 8, 6, 4]
     
     # Aleatoric Uncertainty Modeling
     aleat_bool=True

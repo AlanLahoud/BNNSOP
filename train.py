@@ -53,8 +53,9 @@ class TrainDecoupled():
             if self.bnn:
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
                 if self.aleat_bool:
-                    loss_data_ = self.loss_data(
-                        y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
+                    mse_loss_ = self.loss_data(y_preds, y_batch)
+                    loss_data_ = mse_loss_*torch.exp(-rho_preds) + rho_preds
+
                 else:
                     loss_data_ = self.loss_data(y_preds, y_batch)
                 loss_data_ = loss_data_.mean(axis=1) #through batch
@@ -103,6 +104,7 @@ class TrainDecoupled():
 
             self.model.train(False)
             loss_data_running_loss_v = 0.0
+            mse_data_running_loss_v = 0.0
 
             n = len(self.validation_loader.dataset)
             n_batches = len(self.validation_loader)
@@ -124,12 +126,16 @@ class TrainDecoupled():
                 if self.bnn:
                     y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)                    
                     if self.aleat_bool:
-                        loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
+                        mse_loss_ = self.loss_data(y_val_preds, y_val_batch)
+                        loss_data_ = mse_loss_*torch.exp(-rho_val_preds) + rho_val_preds
+                        
+                        mse_loss_ = mse_loss_.mean(axis=1) #through batch
+                        mse_loss_ = mse_loss_.mean(axis=0) #through stochastic weights
                     else:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)                                     
                     loss_data_ = loss_data_.mean(axis=1) #through batch
                     loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
-                    
+          
                 else:
                     if self.aleat_bool:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
@@ -139,9 +145,14 @@ class TrainDecoupled():
                 
                 loss_data_ = loss_data_.mean(axis=-1) #through output dimension
                 loss_data_running_loss_v += loss_data_.detach()
+                
+                mse_loss_ = mse_loss_.mean(axis=-1) #through output dimension
+                mse_data_running_loss_v += mse_loss_.detach()
               
             avg_vloss_data = (loss_data_running_loss_v/n_batches).item()
             avg_vklloss = (kl_loss_).item()
+            
+            avg_mse_data = (mse_data_running_loss_v/n_batches).item()
 
             avg_vloss = avg_vloss_data + avg_vklloss
 
@@ -149,13 +160,13 @@ class TrainDecoupled():
                 print('------------------EPOCH {}------------------'.format(
                     epoch_number + 1))
 
-                print('DATA LOSS \t train {} valid {}'.format(
-                    round(avg_loss_data_loss, 3), round(avg_vloss_data, 3)))
+                print('DATA LOSS \t train {} valid {}, {}'.format(
+                    round(avg_loss_data_loss, 3), round(avg_vloss_data, 3), round(avg_mse_data, 3)))
                 print('KL LOSS \t train {} valid {}'.format(
                     round(avg_kl_loss/(self.K+0.000001), 2), round(avg_vklloss/(self.K+0.000001), 2)))
                 print('ELBO LOSS \t train {} valid {}'.format(
                     round(avg_loss, 2), round(avg_vloss, 2)))
-    
+                    
             if  avg_vloss < avg_best_vloss:
                 avg_best_vloss = avg_vloss
                 best_model=copy.deepcopy(self.model)
@@ -188,6 +199,8 @@ class TrainCombined():
         self.end_loss = OP.end_loss # OP cost function
         self.end_loss_dist = OP.end_loss_dist # OP expect cost function
         self.dev = dev
+        self.n_samples = OP.n_samples
+        self.n_items = OP.n_items
         self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
             opt, gamma=explr)
        
@@ -210,7 +223,7 @@ class TrainCombined():
         kl_running_loss = 0.
         
         for i, data in enumerate(self.training_loader):
-            
+                            
             x_batch, y_batch = data
             x_batch = x_batch.to(self.dev)
             y_batch = y_batch.to(self.dev)
@@ -220,12 +233,18 @@ class TrainCombined():
             y_preds, rho_preds = self.model(x_batch)
 
             if self.aleat_bool:
-                y_preds = y_preds + torch.sqrt(
+                noisey = torch.sqrt(
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
+            
+                y_preds = y_preds + noisey
     
             y_preds = self.inverse_transform(y_preds)
-            y_batch = self.inverse_transform(y_batch)
+            y_batch = self.inverse_transform(y_batch)            
+            
+            y_preds = y_preds.reshape(self.n_samples, -1 ,self.n_items)
+            y_batch = y_batch.reshape(-1, self.n_items)
+            
             if self.bnn:
                 #End loss: Expected OP cost value based on pred distrib
                 end_loss_ = self.end_loss_dist(y_preds, y_batch)
@@ -259,6 +278,7 @@ class TrainCombined():
         epoch_number = 0
         
         best_loss = np.inf
+     
         best_model = copy.deepcopy(self.model)
         
         for epoch in tqdm(range(EPOCHS)):
@@ -296,6 +316,10 @@ class TrainCombined():
 
                 y_val_preds = self.inverse_transform(y_val_preds)
                 y_val_batch = self.inverse_transform(y_val_batch)
+                
+                y_val_preds = y_val_preds.reshape(self.n_samples, -1 ,self.n_items)
+                y_val_batch = y_val_batch.reshape(-1, self.n_items)
+                
                 if self.bnn:
                     total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
 
