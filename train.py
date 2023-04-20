@@ -87,7 +87,7 @@ class TrainDecoupled():
         return loss_data, kl
     
     
-    def train(self, EPOCHS=150):
+    def train(self, EPOCHS=350):
         """
         Update ANN or BNN weights with Decoupled Learning approach 
         for EPOCHS epochs.
@@ -96,6 +96,9 @@ class TrainDecoupled():
  
         avg_best_vloss = np.inf
         best_model = copy.deepcopy(self.model)
+        
+        es_count = 0
+        es_count_trs = 40
     
         for epoch in tqdm(range(EPOCHS)):
             
@@ -165,11 +168,18 @@ class TrainDecoupled():
                     round(avg_loss, 2), round(avg_vloss, 2)))
     
             if  avg_vloss < avg_best_vloss:
+                es_count = 0
                 avg_best_vloss = avg_vloss
                 best_model=copy.deepcopy(self.model)
+            else:
+                es_count = es_count+1
             
             epoch_number += 1
             self.scheduler.step()
+            
+            if es_count>es_count_trs:
+                print('EARLY STOP')
+                break
             
         return best_model 
             
@@ -269,6 +279,9 @@ class TrainCombined():
         best_loss = np.inf
         best_model = copy.deepcopy(self.model)
         
+        es_count = 0
+        es_count_trs = 40
+        
         for epoch in tqdm(range(EPOCHS)):
 
             self.model.train(True)
@@ -329,8 +342,12 @@ class TrainCombined():
             if  total_loss_val < best_loss:
                 best_loss = total_loss_val
                 best_model=copy.deepcopy(self.model)
-                
+  
             epoch_number += 1
             self.scheduler.step()
+            
+            if es_count>es_count_trs:
+                print('EARLY STOP')
+                break
             
         return best_model

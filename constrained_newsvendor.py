@@ -66,7 +66,7 @@ def run_constrained_newsvendor(
     N_test = 400
     
     #BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 200  # Epochs on training
+    EPOCHS = 350  # Epochs on training
     
     BATCH_SIZE_LOADER = 128 # Standard batch size
     if dev == torch.device('cuda'):
@@ -77,9 +77,9 @@ def run_constrained_newsvendor(
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0008
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0008
+        lr = 0.0003
     if method_learning == 'combined' and method_name == 'bnn':
-        EPOCHS = EPOCHS - 20
+        EPOCHS = EPOCHS - 30
         pre_train = True
         K = 1000 # to be same magnitude as the end loss 
         lr = 0.0003
@@ -93,7 +93,7 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    nl=2.0 # Change to increase/decrease conditional noise
+    nl=3.0 # Change to increase/decrease conditional noise
     X, Y_original, _ = data_generator.data_4to8(
         N_train, noise_level=nl, seed_number=seed_number,
         uniform_input_space=False)
@@ -214,7 +214,7 @@ def run_constrained_newsvendor(
                             validation_loader=validation_loader,
                             dev=dev
                         )
-            h = pre.train(EPOCHS=20)
+            h = pre.train(EPOCHS=30)
             opt_h = torch.optim.Adam(h.parameters(), lr=lr)
         
         # Decoupled learning approach
@@ -397,7 +397,7 @@ if __name__ == '__main__':
     #aleat_bool = bool(int(sys.argv[4])) # ToDo: implement ANN with 1
     N_SAMPLES = int(sys.argv[4])  # Sampling size while training (M_train)
     M_SAMPLES = [64, 32, 16, 8] # Sampling size while optimizing (M_opt)
-    M_SAMPLES = [16, 8, 6, 4]
+    #M_SAMPLES = [16, 8, 6, 4]
     
     # Aleatoric Uncertainty Modeling
     aleat_bool=True
