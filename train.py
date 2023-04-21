@@ -344,7 +344,9 @@ class TrainCombined():
                 best_model=copy.deepcopy(self.model)
   
             epoch_number += 1
-            self.scheduler.step()
+    
+            if epoch < 200:
+                self.scheduler.step()
             
             if es_count>es_count_trs:
                 print('EARLY STOP')
