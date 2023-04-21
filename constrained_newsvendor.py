@@ -61,8 +61,8 @@ def run_constrained_newsvendor(
     
     pre_train = False
        
-    N_train = 1200
-    N_valid = 600
+    N_train = 1000
+    N_valid = 500
     N_test = 400
     
     #BATCH_SIZE_LOADER = 32 # Standard batch size
@@ -79,8 +79,8 @@ def run_constrained_newsvendor(
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0003
     if method_learning == 'combined' and method_name == 'bnn':
-        EPOCHS = EPOCHS - 30
-        pre_train = True
+        EPOCHS = EPOCHS# - 30
+        pre_train = False
         K = 1000 # to be same magnitude as the end loss 
         lr = 0.0003
 
@@ -93,9 +93,10 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    nl=3.0 # Change to increase/decrease conditional noise
-    X, Y_original, _ = data_generator.data_4to8(
-        N_train, noise_level=nl, seed_number=seed_number,
+    d_y = 6
+    nl=0.2 # Change to increase/decrease conditional noise
+    X, Y_original, _ = data_generator.generate_dataset(
+        N_train, d_y=d_y, noise_level=nl, seed_number=seed_number,
         uniform_input_space=False)
 
     # Output normalization
@@ -118,8 +119,8 @@ def run_constrained_newsvendor(
         shuffle=False, num_workers=cpu_count)
 
     
-    X_val, Y_val_original, _ = data_generator.data_4to8(
-        N_valid, noise_level=nl, seed_number=seed_number+100,
+    X_val, Y_val_original, _ = data_generator.generate_dataset(
+        N_valid, d_y=d_y, noise_level=nl, seed_number=seed_number+100,
         uniform_input_space=False)
     Y_val = scaler.transform(Y_val_original).copy()
     X_val = torch.tensor(X_val, dtype=torch.float32)
@@ -131,8 +132,8 @@ def run_constrained_newsvendor(
         shuffle=False, num_workers=cpu_count)
 
     
-    X_test, Y_test_original, Y_noisy = data_generator.data_4to8(
-        N_test, noise_level=nl, seed_number=seed_number+200,
+    X_test, Y_test_original, Y_noisy = data_generator.generate_dataset(
+        N_test, d_y=d_y, noise_level=nl, seed_number=seed_number+200,
         uniform_input_space=False, add_yfair=True)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     Y_test_original = torch.tensor(
@@ -243,7 +244,8 @@ def run_constrained_newsvendor(
                             scaler=scaler,
                             validation_loader=validation_loader,
                             OP=op_solver_dist,
-                            dev=dev
+                            dev=dev,
+                            OP_simple=op_solver
                         )
 
         else:

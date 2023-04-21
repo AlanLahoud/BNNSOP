@@ -168,3 +168,83 @@ def data_4to8(N, noise_level=1, seed_number=42,
     X = np.vstack((x1, x2, x3, x4)).T.round(3)
     
     return X, Y, Y_noisy
+
+
+
+
+
+def generate_dataset(N, d_y = 1, noise_level=0.01, seed_number=42,
+                    uniform_input_space=False, 
+                    add_yfair=False):
+    
+    assert noise_level > 0.0001
+    
+    np.random.seed(seed=seed_number)
+        
+    x1 = 2*np.random.random(size=N) - 0.5
+    x2 = 3*np.random.random(size=N) - 0.5
+    x3 = np.append(
+        np.random.random(size=N//2) - 1.5, 
+        np.random.random(size=N-N//2) + 0.5
+    )
+    
+    X = np.array([x1, x2, x3]).T
+    
+    # Params to create Y
+    a = np.random.randint(-5, 5, size=d_y)/10
+    b = np.random.randint(-5, 5, size=d_y)/10
+    c = np.random.randint(-5, 5, size=d_y)/10
+
+    d = np.random.randint(-5, 5, size=d_y)/10
+    e = np.random.randint(-5, 5, size=d_y)/10
+    f = np.random.randint(-5, 5, size=d_y)/10
+    
+    g = np.random.randint(2, 3, size=d_y)
+
+    def gen_output(x1, x2, x3):
+        # True distribution of P(Y|X)
+        Y_original = 20*(np.power.outer(np.abs(x1), g))*(
+            (np.sin(
+                np.power.outer(np.abs(x1), a) 
+                * np.power.outer(np.abs(x2), b) 
+                * np.power.outer(np.abs(x3), c)
+            ) + 1)
+            *(np.sin(
+                1.5 
+                + np.power.outer(np.abs(x1), d) 
+                * np.power.outer(np.abs(x2), e) 
+                * np.power.outer(np.abs(x3), f)
+            ) + 1)
+        )
+
+        an = np.random.randint(5, 15, size=d_y)/10
+        bn = np.random.randint(5, 15, size=d_y)/10
+        cn = np.random.randint(5, 15, size=d_y)/10
+
+        Y_noise = (
+                np.outer(np.abs(x1), an) 
+                * np.outer(np.abs(x2), bn) 
+                * np.outer(np.abs(x3), cn)
+                )*np.expand_dims((np.random.random(size=N)-0.5),1)
+
+        mult = noise_level*Y_original.mean()/(np.abs(Y_noise).mean() + 0.00001)
+
+        Y_noise = mult*Y_noise
+
+        Y = Y_original + Y_noise
+        
+        return Y.clip(0) 
+    
+    Y = gen_output(x1, x2, x3)
+    
+    
+    np.random.seed(0)
+    if add_yfair:
+        Y_noisy = np.zeros((32, N, d_y))
+        for i in range(0, 32):
+            Y_noisy[i,:,:] = gen_output(x1, x2, x3)
+        Y_noisy = torch.tensor(Y_noisy, dtype=torch.float32)
+    else:
+        Y_noisy = Y
+    
+    return X, Y, Y_noisy

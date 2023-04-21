@@ -192,7 +192,7 @@ class TrainCombined():
     """
     def __init__(self, bnn, model, opt, K, aleat_bool, 
                  training_loader, scaler, validation_loader, 
-                 OP, dev, explr=0.99):
+                 OP, dev, explr=0.99, OP_simple=None):
         self.model = model # Neural network (ANN or BNN)
         self.opt = opt
         self.K = K # Useful only for BNN
@@ -208,6 +208,10 @@ class TrainCombined():
         self.dev = dev
         self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
             opt, gamma=explr)
+        
+        self.n_samples = OP.n_samples
+        self.OP = OP
+        self.OP_simple=OP_simple
        
 
     def inverse_transform(self, inp):
@@ -216,7 +220,7 @@ class TrainCombined():
         """
         return inp*self.scaler_std + self.scaler_mean
        
-    def train_one_epoch(self):
+    def train_one_epoch(self, start_aleat=True):
         """
         Update ANN or BNN weights with Combined Learning approach 
         for one epoch. 
@@ -228,7 +232,6 @@ class TrainCombined():
         kl_running_loss = 0.
         
         for i, data in enumerate(self.training_loader):
-            
             x_batch, y_batch = data
             x_batch = x_batch.to(self.dev)
             y_batch = y_batch.to(self.dev)
@@ -237,18 +240,24 @@ class TrainCombined():
  
             y_preds, rho_preds = self.model(x_batch)
 
-            if self.aleat_bool:
+            if self.aleat_bool and start_aleat:
                 y_preds = y_preds + torch.sqrt(
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
     
             y_preds = self.inverse_transform(y_preds)
             y_batch = self.inverse_transform(y_batch)
-            if self.bnn:
+            if self.bnn and start_aleat:
                 #End loss: Expected OP cost value based on pred distrib
                 end_loss_ = self.end_loss_dist(y_preds, y_batch)
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
                 total_loss = end_loss_ + kl_loss_
+                
+            elif self.bnn and not start_aleat:
+                y_preds = y_preds.mean(axis=0)
+                end_loss_ = self.OP_simple.end_loss(y_preds, y_batch) 
+                kl_loss_ = torch.tensor(0)
+                total_loss = end_loss_ + kl_loss_                
                 
             else:
                 #End loss: OP cost value based on pred value
@@ -285,7 +294,11 @@ class TrainCombined():
         for epoch in tqdm(range(EPOCHS)):
 
             self.model.train(True)
-            end_loss, kl_loss = self.train_one_epoch()
+            
+            start_aleat = False
+            if epoch > 150:
+                start_aleat = True
+            end_loss, kl_loss = self.train_one_epoch(start_aleat)
             total_loss = end_loss + kl_loss
 
             self.model.train(False)
@@ -295,7 +308,7 @@ class TrainCombined():
             
             total_running_loss_v = 0.0
             
-            if self.bnn:
+            if self.bnn and start_aleat:
                 kl_loss_val = self.K*self.model.kl_divergence_NN()
             else:
                 kl_loss_val = torch.tensor(0)
@@ -310,16 +323,21 @@ class TrainCombined():
                       
                 y_val_preds, rho_val_preds = self.model(x_val_batch)
 
-                if self.aleat_bool:
+                if self.aleat_bool and start_aleat:
                     y_val_preds = y_val_preds + torch.sqrt(
                         torch.exp(rho_val_preds))*torch.randn(
                         y_val_preds.size(), device = self.dev)
 
                 y_val_preds = self.inverse_transform(y_val_preds)
                 y_val_batch = self.inverse_transform(y_val_batch)
-                if self.bnn:
+                if self.bnn and start_aleat:
                     total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
 
+                elif self.bnn and not start_aleat: 
+                    y_val_preds = y_val_preds.mean(axis=0)
+                    total_loss_v = self.OP_simple.end_loss(y_val_preds, y_val_batch)
+                    
+                    
                 else:
                     total_loss_v = self.end_loss(y_val_preds, y_val_batch)
                 

@@ -114,9 +114,10 @@ class SolveConstrainedNewsvendor():
         qpth library from Amos and Kolter. 
         We will set them as a small percentage of the linear terms (Wilder, Ewing, Dilkina, Tambe, 2019)
         """
+
         
         batch_size, n_samples_items = y.size()
-                
+        
         assert self.n_samples*self.n_items == n_samples_items 
 
         Q = self.Q
