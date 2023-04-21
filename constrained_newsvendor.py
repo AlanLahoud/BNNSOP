@@ -29,6 +29,7 @@ def run_constrained_newsvendor(
             aleat_bool,
             N_SAMPLES,
             M_SAMPLES,
+            N_ITEMS,
             dev):
 
 
@@ -66,7 +67,7 @@ def run_constrained_newsvendor(
     N_test = 400
     
     #BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 350  # Epochs on training
+    EPOCHS = 20  # Epochs on training
     
     BATCH_SIZE_LOADER = 128 # Standard batch size
     if dev == torch.device('cuda'):
@@ -93,7 +94,7 @@ def run_constrained_newsvendor(
     ##### Data #######################################################
     ##################################################################
 
-    d_y = 6
+    d_y = N_ITEMS
     nl=0.2 # Change to increase/decrease conditional noise
     X, Y_original, _ = data_generator.generate_dataset(
         N_train, d_y=d_y, noise_level=nl, seed_number=seed_number,
@@ -154,6 +155,8 @@ def run_constrained_newsvendor(
     
     input_size = X.shape[1]
     output_size = Y.shape[1]
+    
+    print('Nr Items:', output_size)
 
     #OP deterministic params
     n_items = output_size
@@ -392,14 +395,15 @@ if __name__ == '__main__':
         dev = torch.device('cuda') 
 
         
-    assert (len(sys.argv)==5)
+    assert (len(sys.argv)==6)
     method_name = sys.argv[1] # ann or bnn or gp
     method_learning = sys.argv[2] # decoupled or combined
     nr_seeds = int(sys.argv[3]) # Average results through nr seeds
     #aleat_bool = bool(int(sys.argv[4])) # ToDo: implement ANN with 1
     N_SAMPLES = int(sys.argv[4])  # Sampling size while training (M_train)
+    N_ITEMS = int(sys.argv[5])
     M_SAMPLES = [64, 32, 16, 8] # Sampling size while optimizing (M_opt)
-    #M_SAMPLES = [16, 8, 6, 4]
+    M_SAMPLES = [3*N_SAMPLES]
     
     # Aleatoric Uncertainty Modeling
     aleat_bool=True
@@ -407,19 +411,19 @@ if __name__ == '__main__':
         aleat_bool=False
   
     mse_results_32 = []
-    mse_results_16 = []
-    mse_results_8 = []
-    mse_results_4 = []
+    #mse_results_16 = []
+    #mse_results_8 = []
+    #mse_results_4 = []
     
     reg_results_32 = []
-    reg_results_16 = []
-    reg_results_8 = []
-    reg_results_4 = []
+    #reg_results_16 = []
+    #reg_results_8 = []
+    #reg_results_4 = []
     
     freg_results_32 = []
-    freg_results_16 = []
-    freg_results_8 = []
-    freg_results_4 = []
+    #freg_results_16 = []
+    #freg_results_8 = []
+    #freg_results_4 = []
     
     for seed_number in range(0, nr_seeds):
         model_used, model_name, reg_result, freg_result, mse_result \
@@ -430,23 +434,24 @@ if __name__ == '__main__':
             aleat_bool,
             N_SAMPLES,
             M_SAMPLES,
+            N_ITEMS,
             dev
         )
         
         mse_results_32.append(mse_result[0])
-        mse_results_16.append(mse_result[1])
-        mse_results_8.append(mse_result[2])
-        mse_results_4.append(mse_result[3])
+        #mse_results_16.append(mse_result[1])
+        #mse_results_8.append(mse_result[2])
+        #mse_results_4.append(mse_result[3])
         
         reg_results_32.append(reg_result[0])
-        reg_results_16.append(reg_result[1])
-        reg_results_8.append(reg_result[2])
-        reg_results_4.append(reg_result[3])
+        #reg_results_16.append(reg_result[1])
+        #reg_results_8.append(reg_result[2])
+        #reg_results_4.append(reg_result[3])
         
         freg_results_32.append(freg_result[0])
-        freg_results_16.append(freg_result[1])
-        freg_results_8.append(freg_result[2])
-        freg_results_4.append(freg_result[3])
+        #freg_results_16.append(freg_result[1])
+        #freg_results_8.append(freg_result[2])
+        #freg_results_4.append(freg_result[3])
         
         
         ##########################################################
@@ -458,70 +463,70 @@ if __name__ == '__main__':
     
     df_total = pd.DataFrame(data={
         'MSE32':mse_results_32,
-        'MSE16':mse_results_16, 
-        'MSE8':mse_results_8, 
-        'MSE4':mse_results_4,
+        #'MSE16':mse_results_16, 
+        #'MSE8':mse_results_8, 
+        #'MSE4':mse_results_4,
         'REG32':reg_results_32,
-        'REG16':reg_results_16,
-        'REG8':reg_results_8,
-        'REG4':reg_results_4,
+        #'REG16':reg_results_16,
+        #'REG8':reg_results_8,
+        #'REG4':reg_results_4,
         'FREG32':freg_results_32,
-        'FREG16':freg_results_16,
-        'FREG8':freg_results_8,
-        'FREG4':freg_results_4
+        #'FREG16':freg_results_16,
+        #'FREG8':freg_results_8,
+        #'FREG4':freg_results_4
     })
     
     mse32_avg = df_total['MSE32'].mean()
     mse32_std = df_total['MSE32'].std()
     
-    mse16_avg = df_total['MSE16'].mean()
-    mse16_std = df_total['MSE16'].std()
+    #mse16_avg = df_total['MSE16'].mean()
+    #mse16_std = df_total['MSE16'].std()
     
-    mse8_avg = df_total['MSE8'].mean()
-    mse8_std = df_total['MSE8'].std()
+    #mse8_avg = df_total['MSE8'].mean()
+    #mse8_std = df_total['MSE8'].std()
     
-    mse4_avg = df_total['MSE4'].mean()
-    mse4_std = df_total['MSE4'].std()
+    #mse4_avg = df_total['MSE4'].mean()
+    #mse4_std = df_total['MSE4'].std()
     
     reg32_avg = df_total['REG32'].mean()
     reg32_std = df_total['REG32'].std()
     
-    reg16_avg = df_total['REG16'].mean()
-    reg16_std = df_total['REG16'].std()
+    #reg16_avg = df_total['REG16'].mean()
+    #reg16_std = df_total['REG16'].std()
     
-    reg8_avg = df_total['REG8'].mean()
-    reg8_std = df_total['REG8'].std()
+    #reg8_avg = df_total['REG8'].mean()
+    #reg8_std = df_total['REG8'].std()
     
-    reg4_avg = df_total['REG4'].mean()
-    reg4_std = df_total['REG4'].std()
+    #reg4_avg = df_total['REG4'].mean()
+    #reg4_std = df_total['REG4'].std()
     
     freg32_avg = df_total['FREG32'].mean()
     freg32_std = df_total['FREG32'].std()
     
-    freg16_avg = df_total['FREG16'].mean()
-    freg16_std = df_total['FREG16'].std()
+    #freg16_avg = df_total['FREG16'].mean()
+    #freg16_std = df_total['FREG16'].std()
     
-    freg8_avg = df_total['FREG8'].mean()
-    freg8_std = df_total['FREG8'].std()
+    #freg8_avg = df_total['FREG8'].mean()
+    #freg8_std = df_total['FREG8'].std()
     
-    freg4_avg = df_total['FREG4'].mean()
-    freg4_std = df_total['FREG4'].std()
+    #freg4_avg = df_total['FREG4'].mean()
+    #freg4_std = df_total['FREG4'].std()
     
     print('---------------------------------------------------')
     print('-----------------Results---------------------------')
     print(f'Params: {model_name}')
     print('MSE32: ', round(mse32_avg, 5), '(', round(mse32_std, 5), ')')
-    print('MSE16: ', round(mse16_avg, 5), '(', round(mse16_std, 5), ')')
-    print('MSE8: ', round(mse8_avg, 5), '(', round(mse8_std, 5), ')')
-    print('MSE4: ', round(mse4_avg, 5), '(', round(mse4_std, 5), ')')
+    #print('MSE16: ', round(mse16_avg, 5), '(', round(mse16_std, 5), ')')
+    #print('MSE8: ', round(mse8_avg, 5), '(', round(mse8_std, 5), ')')
+    #print('MSE4: ', round(mse4_avg, 5), '(', round(mse4_std, 5), ')')
     print('REG32: ', round(reg32_avg, 5), '(', round(reg32_std, 5), ')')
-    print('REG16: ', round(reg16_avg, 5), '(', round(reg16_std, 5), ')')
-    print('REG8: ', round(reg8_avg, 5), '(', round(reg8_std, 5), ')')
-    print('REG4: ', round(reg4_avg, 5), '(', round(reg4_std, 5), ')')
+    #print('REG16: ', round(reg16_avg, 5), '(', round(reg16_std, 5), ')')
+    #print('REG8: ', round(reg8_avg, 5), '(', round(reg8_std, 5), ')')
+    #print('REG4: ', round(reg4_avg, 5), '(', round(reg4_std, 5), ')')
     print('FREG32: ', round(freg32_avg, 5), '(', round(freg32_std, 5), ')')
-    print('FREG16: ', round(freg16_avg, 5), '(', round(freg16_std, 5), ')')
-    print('FREG8: ', round(freg8_avg, 5), '(', round(freg8_std, 5), ')')
-    print('FREG4: ', round(freg4_avg, 5), '(', round(freg4_std, 5), ')')
+    #print('FREG16: ', round(freg16_avg, 5), '(', round(freg16_std, 5), ')')
+    #print('FREG8: ', round(freg8_avg, 5), '(', round(freg8_std, 5), ')')
+    #print('FREG4: ', round(freg4_avg, 5), '(', round(freg4_std, 5), ')')
                 
     if not os.path.isdir("./newsvendor_results"):   
         os.makedirs("./newsvendor_results") 
