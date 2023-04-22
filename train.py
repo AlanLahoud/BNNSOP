@@ -301,73 +301,75 @@ class TrainCombined():
             end_loss, kl_loss = self.train_one_epoch(start_aleat)
             total_loss = end_loss + kl_loss
 
-            self.model.train(False)
-
-            n = len(self.validation_loader.dataset)
-            n_batches = len(self.validation_loader)
+            if epoch%20==1 or epoch == 0:
             
-            total_running_loss_v = 0.0
-            
-            if self.bnn and start_aleat:
-                kl_loss_val = self.K*self.model.kl_divergence_NN()
-            else:
-                kl_loss_val = torch.tensor(0)
-            
-            # Validation metrics
-            for i, vdata in enumerate(self.validation_loader):
+                self.model.train(False)
 
-                x_val_batch, y_val_batch = vdata
-                
-                x_val_batch = x_val_batch.to(self.dev)
-                y_val_batch = y_val_batch.to(self.dev)
-                      
-                y_val_preds, rho_val_preds = self.model(x_val_batch)
+                n = len(self.validation_loader.dataset)
+                n_batches = len(self.validation_loader)
 
-                if self.aleat_bool and start_aleat:                 
-                    y_val_preds = y_val_preds + torch.sqrt(
-                        torch.exp(rho_val_preds))*torch.randn(
-                        y_val_preds.size(), device = self.dev)
+                total_running_loss_v = 0.0
 
-                y_val_preds = self.inverse_transform(y_val_preds)
-                y_val_batch = self.inverse_transform(y_val_batch)
                 if self.bnn and start_aleat:
-                    total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
-
-                elif self.bnn and not start_aleat: 
-                    y_val_preds = y_val_preds.mean(axis=0)
-                    total_loss_v = self.OP_simple.end_loss(y_val_preds, y_val_batch)
-                    
-                    
+                    kl_loss_val = self.K*self.model.kl_divergence_NN()
                 else:
-                    total_loss_v = self.end_loss(y_val_preds, y_val_batch)
-                
-                total_running_loss_v += total_loss_v.detach().item()
-                                  
-            
-            end_loss_val = (total_running_loss_v/n_batches)
-            kl_loss_val = (kl_loss_val).item()
-            total_loss_val = end_loss_val + kl_loss_val
-            
-            if epoch_number == 0 or (epoch_number+1)%1 == 0: 
-                print('------------------EPOCH {}------------------'.format(
-                    epoch_number + 1))
-                print(
-                    f'END LOSS \t train {round(end_loss, 3)} valid {round(end_loss_val, 3)} \n',
-                    f'KL LOSS \t train {round(kl_loss/(self.K+0.0001), 3)} valid {round(kl_loss_val/(self.K+0.0001), 3)} \n',
-                    f'TOTAL LOSS \t train {round(total_loss, 3)} valid {round(total_loss_val, 3)} \n',
-                )
+                    kl_loss_val = torch.tensor(0)
 
-            if  total_loss_val < best_loss:
-                best_loss = total_loss_val
-                best_model=copy.deepcopy(self.model)
+                # Validation metrics
+                for i, vdata in enumerate(self.validation_loader):
+
+                    x_val_batch, y_val_batch = vdata
+
+                    x_val_batch = x_val_batch.to(self.dev)
+                    y_val_batch = y_val_batch.to(self.dev)
+
+                    y_val_preds, rho_val_preds = self.model(x_val_batch)
+
+                    if self.aleat_bool and start_aleat:                 
+                        y_val_preds = y_val_preds + torch.sqrt(
+                            torch.exp(rho_val_preds))*torch.randn(
+                            y_val_preds.size(), device = self.dev)
+
+                    y_val_preds = self.inverse_transform(y_val_preds)
+                    y_val_batch = self.inverse_transform(y_val_batch)
+                    if self.bnn and start_aleat:
+                        total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
+
+                    elif self.bnn and not start_aleat: 
+                        y_val_preds = y_val_preds.mean(axis=0)
+                        total_loss_v = self.OP_simple.end_loss(y_val_preds, y_val_batch)
+
+
+                    else:
+                        total_loss_v = self.end_loss(y_val_preds, y_val_batch)
+
+                    total_running_loss_v += total_loss_v.detach().item()
+
+
+                end_loss_val = (total_running_loss_v/n_batches)
+                kl_loss_val = (kl_loss_val).item()
+                total_loss_val = end_loss_val + kl_loss_val
+
+                if epoch_number == 0 or (epoch_number+1)%1 == 0: 
+                    print('------------------EPOCH {}------------------'.format(
+                        epoch_number + 1))
+                    print(
+                        f'END LOSS \t train {round(end_loss, 3)} valid {round(end_loss_val, 3)} \n',
+                        f'KL LOSS \t train {round(kl_loss/(self.K+0.0001), 3)} valid {round(kl_loss_val/(self.K+0.0001), 3)} \n',
+                        f'TOTAL LOSS \t train {round(total_loss, 3)} valid {round(total_loss_val, 3)} \n',
+                    )
+
+                if  total_loss_val < best_loss:
+                    best_loss = total_loss_val
+                    best_model=copy.deepcopy(self.model)
   
             epoch_number += 1
     
             if epoch < 200:
                 self.scheduler.step()
             
-            if es_count>es_count_trs:
-                print('EARLY STOP')
-                break
+            #if es_count>es_count_trs:
+            #    print('EARLY STOP')
+            #    break
             
         return best_model
