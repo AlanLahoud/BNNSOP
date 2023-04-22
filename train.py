@@ -241,6 +241,8 @@ class TrainCombined():
             y_preds, rho_preds = self.model(x_batch)       
 
             if self.aleat_bool and start_aleat:
+                import pdb
+                pdb.set_trace()
                 y_preds = y_preds + torch.sqrt(
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
