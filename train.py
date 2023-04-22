@@ -296,7 +296,7 @@ class TrainCombined():
             self.model.train(True)
             
             start_aleat = False
-            if epoch > 150:
+            if epoch > 50:
                 start_aleat = True
             end_loss, kl_loss = self.train_one_epoch(start_aleat)
             total_loss = end_loss + kl_loss
