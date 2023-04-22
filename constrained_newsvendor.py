@@ -62,12 +62,12 @@ def run_constrained_newsvendor(
     
     pre_train = False
        
-    N_train = 1200
-    N_valid = 600
-    N_test = 600
+    N_train = 1500
+    N_valid = 700
+    N_test = 3000
     
     #BATCH_SIZE_LOADER = 32 # Standard batch size
-    EPOCHS = 250  # Epochs on training
+    EPOCHS = 200  # Epochs on training
     
     BATCH_SIZE_LOADER = 128 # Standard batch size
     if dev == torch.device('cuda'):
@@ -78,12 +78,12 @@ def run_constrained_newsvendor(
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0008
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0001
+        lr = 0.00008
     if method_learning == 'combined' and method_name == 'bnn':
         EPOCHS = EPOCHS# - 30
         pre_train = False
         K = 1000 # to be same magnitude as the end loss 
-        lr = 0.0001
+        lr = 0.00008
 
     cpu_count = mp.cpu_count()
     if dev == torch.device('cuda'):
@@ -95,7 +95,7 @@ def run_constrained_newsvendor(
     ##################################################################
 
     d_y = N_ITEMS
-    nl=0.2 # Change to increase/decrease conditional noise
+    nl=0.15 # Change to increase/decrease conditional noise
     X, Y_original, _ = data_generator.generate_dataset(
         N_train, d_y=d_y, noise_level=nl, seed_number=seed_number,
         uniform_input_space=False)

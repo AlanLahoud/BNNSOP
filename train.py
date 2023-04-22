@@ -192,7 +192,7 @@ class TrainCombined():
     """
     def __init__(self, bnn, model, opt, K, aleat_bool, 
                  training_loader, scaler, validation_loader, 
-                 OP, dev, explr=0.99, OP_simple=None):
+                 OP, dev, explr=0.995, OP_simple=None):
         self.model = model # Neural network (ANN or BNN)
         self.opt = opt
         self.K = K # Useful only for BNN
