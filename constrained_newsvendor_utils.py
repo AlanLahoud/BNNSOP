@@ -25,6 +25,8 @@ class SolveConstrainedNewsvendor():
         
         self.params_pr = params_t['pr'].to(self.dev)
         
+        self.params_B = params_t['B'].to(self.dev)
+        
         self.zeros_params = torch.zeros((self.n_items)).to(self.dev)
         
             
@@ -95,7 +97,7 @@ class SolveConstrainedNewsvendor():
  
         self.uncert_bound = torch.hstack((-ones_array, ones_array)).to(self.dev)
         
-        self.determ_bound = torch.tensor([params_t['B']]) 
+        self.determ_bound = torch.tensor([self.params_B]) 
         
         self.determ_bound = torch.hstack((self.determ_bound, 
                                           torch.zeros(n_items), 
