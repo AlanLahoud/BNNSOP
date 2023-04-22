@@ -241,8 +241,6 @@ class TrainCombined():
             y_preds, rho_preds = self.model(x_batch)       
 
             if self.aleat_bool and start_aleat:
-                import pdb
-                pdb.set_trace()
                 y_preds = y_preds + torch.sqrt(
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
@@ -298,7 +296,7 @@ class TrainCombined():
             self.model.train(True)
             
             start_aleat = False
-            if epoch > 80:
+            if epoch > 150:
                 start_aleat = True
             end_loss, kl_loss = self.train_one_epoch(start_aleat)
             total_loss = end_loss + kl_loss
