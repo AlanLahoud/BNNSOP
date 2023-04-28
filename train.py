@@ -30,7 +30,7 @@ class TrainDecoupled():
             torch.sqrt(2*torch.tensor(math.pi)))
       
     
-    def train_one_epoch(self):
+    def train_one_epoch(self, flag_pretrain):
         """
         Update ANN or BNN weights with Decoupled Learning approach 
         for one epoch. 
@@ -40,6 +40,14 @@ class TrainDecoupled():
 
         n = len(self.training_loader.dataset)
         n_batches = len(self.training_loader)
+        
+        if flag_pretrain:
+            bnn = self.bnn
+            aleat_bool = False
+        else:
+            bnn = self.bnn
+            aleat_bool = self.aleat_bool
+            
                 
         for i, data in enumerate(self.training_loader):
             
@@ -50,9 +58,9 @@ class TrainDecoupled():
             self.opt.zero_grad()
             y_preds, rho_preds = self.model(x_batch)
 
-            if self.bnn:
+            if bnn:
                 y_batch = y_batch.unsqueeze(0).expand(y_preds.shape)
-                if self.aleat_bool:
+                if aleat_bool:
                     loss_data_ = self.loss_data(
                         y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
                 else:
@@ -62,7 +70,7 @@ class TrainDecoupled():
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
 
             else:
-                if self.aleat_bool:
+                if aleat_bool:
                     loss_data_ = self.loss_data(
                         y_preds, y_batch)*torch.exp(-rho_preds) + rho_preds
                 else:
@@ -85,7 +93,7 @@ class TrainDecoupled():
         return loss_data, kl
     
     
-    def train(self, EPOCHS=150):
+    def train(self, EPOCHS=150, pre_train=-1):
         """
         Update ANN or BNN weights with Decoupled Learning approach 
         for EPOCHS epochs.
@@ -97,8 +105,17 @@ class TrainDecoupled():
     
         for epoch in tqdm(range(EPOCHS)):
             
+            if epoch < pre_train:
+                bnn = self.bnn
+                aleat_bool = False
+                flag_pretrain = True
+            else:
+                bnn = self.bnn
+                aleat_bool = self.aleat_bool
+                flag_pretrain = False
+            
             self.model.train(True)
-            avg_loss_data_loss, avg_kl_loss = self.train_one_epoch()
+            avg_loss_data_loss, avg_kl_loss = self.train_one_epoch(flag_pretrain)
             avg_loss = avg_loss_data_loss + avg_kl_loss
 
             self.model.train(False)
@@ -107,7 +124,7 @@ class TrainDecoupled():
             n = len(self.validation_loader.dataset)
             n_batches = len(self.validation_loader)
             
-            if self.bnn:
+            if bnn:
                 kl_loss_ = self.K*self.model.kl_divergence_NN()
             else:
                 kl_loss_ = torch.tensor(0)
@@ -121,9 +138,9 @@ class TrainDecoupled():
                 
                 y_val_preds, rho_val_preds = self.model(x_val_batch)
                 
-                if self.bnn:
+                if bnn:
                     y_val_batch = y_val_batch.unsqueeze(0).expand(y_val_preds.shape)                    
-                    if self.aleat_bool:
+                    if aleat_bool:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
                     else:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)                                     
@@ -131,7 +148,7 @@ class TrainDecoupled():
                     loss_data_ = loss_data_.mean(axis=0) #through stochastic weights
                     
                 else:
-                    if self.aleat_bool:
+                    if aleat_bool:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)*torch.exp(-rho_val_preds) + rho_val_preds
                     else:
                         loss_data_ = self.loss_data(y_val_preds, y_val_batch)                        
@@ -198,7 +215,7 @@ class TrainCombined():
         """
         return inp*self.scaler_std + self.scaler_mean
        
-    def train_one_epoch(self):
+    def train_one_epoch(self, flag_pretrain):
         """
         Update ANN or BNN weights with Combined Learning approach 
         for one epoch. 
@@ -208,6 +225,13 @@ class TrainCombined():
 
         end_total_loss = 0.
         kl_running_loss = 0.
+        
+        if flag_pretrain:
+            bnn = self.bnn
+            aleat_bool = False
+        else:
+            bnn = self.bnn
+            aleat_bool = self.aleat_bool
         
         for i, data in enumerate(self.training_loader):
             
@@ -219,14 +243,14 @@ class TrainCombined():
  
             y_preds, rho_preds = self.model(x_batch)
 
-            if self.aleat_bool:
+            if aleat_bool:
                 y_preds = y_preds + torch.sqrt(
                     torch.exp(rho_preds))*torch.randn(
                     y_preds.size(), device = self.dev)
     
             y_preds = self.inverse_transform(y_preds)
             y_batch = self.inverse_transform(y_batch)
-            if self.bnn:
+            if bnn:
                 #End loss: Expected OP cost value based on pred distrib
                 end_loss_ = self.end_loss_dist(y_preds, y_batch)
                 kl_loss_ = self.K*self.model.kl_divergence_NN()/n_batches
@@ -251,7 +275,7 @@ class TrainCombined():
     
     
     
-    def train(self, EPOCHS=150):
+    def train(self, EPOCHS=150, pre_train=-1):
         """
         Update ANN or BNN weights with Combined Learning approach 
         for EPOCHS epochs. 
@@ -262,9 +286,18 @@ class TrainCombined():
         best_model = copy.deepcopy(self.model)
         
         for epoch in tqdm(range(EPOCHS)):
+            
+            if epoch < pre_train:
+                bnn = self.bnn
+                aleat_bool = False
+                flag_pretrain = True
+            else:
+                bnn = self.bnn
+                aleat_bool = self.aleat_bool
+                flag_pretrain = False
 
             self.model.train(True)
-            end_loss, kl_loss = self.train_one_epoch()
+            end_loss, kl_loss = self.train_one_epoch(flag_pretrain)
             total_loss = end_loss + kl_loss
 
             self.model.train(False)
@@ -274,7 +307,7 @@ class TrainCombined():
             
             total_running_loss_v = 0.0
             
-            if self.bnn:
+            if bnn:
                 kl_loss_val = self.K*self.model.kl_divergence_NN()
             else:
                 kl_loss_val = torch.tensor(0)
@@ -289,14 +322,14 @@ class TrainCombined():
                       
                 y_val_preds, rho_val_preds = self.model(x_val_batch)
 
-                if self.aleat_bool:
+                if aleat_bool:
                     y_val_preds = y_val_preds + torch.sqrt(
                         torch.exp(rho_val_preds))*torch.randn(
                         y_val_preds.size(), device = self.dev)
 
                 y_val_preds = self.inverse_transform(y_val_preds)
                 y_val_batch = self.inverse_transform(y_val_batch)
-                if self.bnn:
+                if bnn:
                     total_loss_v = self.end_loss_dist(y_val_preds, y_val_batch)
 
                 else:

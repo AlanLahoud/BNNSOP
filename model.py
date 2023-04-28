@@ -236,7 +236,7 @@ class StrongStandardNet(nn.Module):
           
 
 class StrongVariationalNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv,dev):
+    def __init__(self, n_samples, input_size, output_size, plv, dev, var=-0.0001):
         super().__init__()
         self.output_type_dist = True
         self.n_samples = n_samples
@@ -249,7 +249,7 @@ class StrongVariationalNet(nn.Module):
         self.linear2 = VariationalLayer(hl_sizes[0], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear3 = VariationalLayer(hl_sizes[1], hl_sizes[1], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
         self.linear4 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
-        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, -0.0001, 0.0001, rho_init-2)
+        self.linear4_2 = VariationalLayer(hl_sizes[1], output_size, 0, plv, n_samples, dev, var, var+0.0002, rho_init-2)
         self.neurons = (
             (input_size+1)*hl_sizes[0] 
             + (hl_sizes[0]+1)*hl_sizes[1]
