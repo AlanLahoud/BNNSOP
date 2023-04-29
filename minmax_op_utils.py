@@ -24,7 +24,7 @@ class RiskPortOP():
             torch.zeros(self.N)
         )).to(self.dev)
         
-        det_ineq = torch.hstack(( torch.zeros(self.M), -self.uy ))
+        det_ineq = torch.hstack(( torch.zeros(self.M), -self.uy )).to(self.dev)
         #det_ineq_2 = torch.hstack(( torch.zeros(self.M), self.uy, torch.tensor(0) ))
         
         #det_ineq = torch.vstack((det_ineq_1, det_ineq_2))
@@ -32,16 +32,16 @@ class RiskPortOP():
         #positive_ineq = torch.hstack( (torch.diag(-torch.ones(self.M+self.N)), 
         #                               torch.zeros(self.M+self.N).unsqueeze(0).T ))
         
-        positive_ineq = torch.diag(-torch.ones(self.M+self.N))
+        positive_ineq = torch.diag(-torch.ones(self.M+self.N)).to(self.dev)
         
         self.ineqs = torch.vstack(( det_ineq, # profit bound
                                    positive_ineq # positive variables
-                                  ))
+                                  )).to(self.dev)
         
         
         self.bounds = torch.hstack(( torch.tensor(-self.R), # profit bound
                                     torch.zeros(self.M + self.N), # positive variables
-                                    torch.zeros(self.M) )) # max ineq
+                                    torch.zeros(self.M) )).to(self.dev) # max ineq
         
 
         
