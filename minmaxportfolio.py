@@ -77,8 +77,6 @@ def run_minimax_op(
         EPOCHS = 150
         pt = -1
       
-    
-    EPOCHS = 5
     # Aleatoric Uncertainty Modeling
     aleat_bool=True
     if method_name == 'ann':
