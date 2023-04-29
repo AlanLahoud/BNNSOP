@@ -11,8 +11,8 @@ class RiskPortOP():
         super(RiskPortOP, self).__init__()
             
         self.dev = dev    
-        self.N = n_assets.to(self.dev)
-        self.M = n_samples.to(self.dev)
+        self.N = n_assets
+        self.M = n_samples
         
         self.R = min_return 
         self.uy = Y_train.mean(axis=0)
@@ -23,6 +23,8 @@ class RiskPortOP():
             (1/self.M)*torch.ones(self.M), 
             torch.zeros(self.N)
         )).to(self.dev)
+        
+        self.eyeM = torch.eye(self.M).to(self.dev)
         
         det_ineq = torch.hstack(( torch.zeros(self.M), -self.uy )).to(self.dev)
         #det_ineq_2 = torch.hstack(( torch.zeros(self.M), self.uy, torch.tensor(0) ))
@@ -72,7 +74,7 @@ class RiskPortOP():
         lin = lin.expand(batch_size, lin.size(0))
         
         # max ineq
-        unc_ineq = torch.dstack(( -torch.eye(self.M).expand(batch_size, self.M, self.M), 
+        unc_ineq = torch.dstack(( -self.eyeM.expand(batch_size, self.M, self.M), 
                                   -Y_dist ))
         
         
