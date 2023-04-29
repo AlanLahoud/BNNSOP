@@ -11,8 +11,8 @@ class RiskPortOP():
         super(RiskPortOP, self).__init__()
             
         self.dev = dev    
-        self.N = n_assets  
-        self.M = n_samples
+        self.N = n_assets.to(self.dev)
+        self.M = n_samples.to(self.dev)
         
         self.R = min_return 
         self.uy = Y_train.mean(axis=0)
