@@ -168,3 +168,45 @@ def data_4to8(N, noise_level=1, seed_number=42,
     X = np.vstack((x1, x2, x3, x4)).T.round(3)
     
     return X, Y, Y_noisy
+
+
+
+
+# Data for portfolio risk optimization (minimax)
+def gen_intermediate(num, n_assets, x1, x2, x3):      
+        factor = num * 2/(n_assets)
+        return x1**factor + x2**factor + x3**factor
+    
+def gen_data(N, n_assets, nl, seed_number=42, samples_dist=1):
+    np.random.seed(seed_number)
+    x1 = np.random.normal(1, 1, size = N).clip(0)
+    x2 = np.random.normal(1, 1, size = N).clip(0)
+    x3 = np.random.normal(1, 1, size = N).clip(0)
+    X = np.vstack((x1, x2, x3)).T
+    
+    def geny(x1, x2, x3, N, n_assets):
+        Y = np.zeros((N, n_assets))
+        for i in range(1, n_assets + 1):
+            interm = gen_intermediate(i, n_assets, x1, x2, x3)
+            Y[:,i-1] = (np.sin(interm) - np.sin(interm).mean()) \
+            + np.sin(interm).std()*(np.random.random())
+
+            ns = Y[:,0].shape[0]//2
+
+            Y[:,i-1] = Y[:,i-1] + nl*Y[:,i-1]*x1*(np.random.beta(5, 2, size = Y[:,0].shape) - 0.2)
+        return Y
+        
+    Y = geny(x1, x2, x3, N, n_assets)
+        
+    Y_dist = np.zeros((samples_dist, N, n_assets))
+    for i in range(0, samples_dist):
+        Y_dist[i, :, :] = geny(x1, x2, x3, N, n_assets)
+        
+    return X, Y, Y_dist
+
+def gen_cond_dist(N, n_assets, n_samples, nl, seed_number=420):
+    np.random.seed(seed_number)
+    Y_dist = np.zeros((n_samples, N, n_assets))
+    for i in range(0, n_samples):
+        Y_dist[i, :, :] = gen_data(N, n_assets, nl, seed_number=np.random.randint(0,999999))[1]
+    return Y_dist
