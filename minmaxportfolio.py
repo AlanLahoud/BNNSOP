@@ -76,7 +76,9 @@ def run_minimax_op(
         lr = 0.0005
         EPOCHS = 150
         pt = -1
-                
+      
+    
+    EPOCHS = 5
     # Aleatoric Uncertainty Modeling
     aleat_bool=True
     if method_name == 'ann':
@@ -207,10 +209,10 @@ def run_minimax_op(
     oc_list = []
     
     op = op_utils.RiskPortOP(n_samples_orig, N_ASSETS, min_return, torch.tensor(Y_original), dev)
-    subopt_cost = op.end_loss_dist(torch.tensor(Y_test_dist), Y_test_original)
+    subopt_cost = op.end_loss_dist(torch.tensor(Y_test_dist).to(dev), Y_test_original.to(dev))
     
     op = op_utils.RiskPortOP(1, N_ASSETS, min_return, torch.tensor(Y_original), dev)
-    opt_cost = op.end_loss_dist(Y_test_original.unsqueeze(0), Y_test_original)
+    opt_cost = op.end_loss_dist(Y_test_original.unsqueeze(0).to(dev), Y_test_original.to(dev))
     
     for M_opt in M_SAMPLES:
         model_used.update_n_samples(n_samples=M_opt)
@@ -218,7 +220,7 @@ def run_minimax_op(
         Y_pred_original = inverse_transform(Y_pred)
         
         op = op_utils.RiskPortOP(M_opt, N_ASSETS, min_return, torch.tensor(Y_original), dev)
-        final_cost = op.end_loss_dist(Y_pred_original, Y_test_original)
+        final_cost = op.end_loss_dist(Y_pred_original.to(dev), Y_test_original.to(dev))
            
         fc_list.append(final_cost.item())
         sc_list.append(subopt_cost.item())
