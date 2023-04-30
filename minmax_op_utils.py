@@ -17,7 +17,7 @@ class RiskPortOP():
         self.R = min_return 
         self.uy = Y_train.mean(axis=0)
                   
-        self.Q = 0.001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
+        self.Q = 0.00001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
         self.lin = torch.hstack(( 
             (1/self.M)*torch.ones(self.M), 
@@ -87,12 +87,15 @@ class RiskPortOP():
         bounds = self.bounds.unsqueeze(dim=0).expand(
             batch_size, self.bounds.shape[0])
         
-        argmin = QPFunction(verbose=-1)\
+        argmin = QPFunction(verbose=1)\
             (2*Q.double(), lin.double(), ineqs.double(), 
              bounds.double(), self.e, self.e).double()
         
         ustar = argmin[:, :self.M]
         zstar = argmin[:, self.M:]
+        
+        assert torch.all(ustar >= -0.00001)
+        assert torch.all(zstar >= -0.00001)
                     
         return ustar, zstar
     
