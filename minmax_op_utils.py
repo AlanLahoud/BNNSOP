@@ -87,7 +87,7 @@ class RiskPortOP():
         bounds = self.bounds.unsqueeze(dim=0).expand(
             batch_size, self.bounds.shape[0])
         
-        argmin = QPFunction(verbose=1)\
+        argmin = QPFunction(verbose=-1)\
             (2*Q.double(), lin.double(), ineqs.double(), 
              bounds.double(), self.e, self.e).double()
         
