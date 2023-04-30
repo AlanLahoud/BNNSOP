@@ -17,7 +17,7 @@ class RiskPortOP():
         self.R = min_return 
         self.uy = Y_train.mean(axis=0)
                   
-        self.Q = 0.0001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
+        self.Q = 0.001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
         self.lin = torch.hstack(( 
             (1/self.M)*torch.ones(self.M), 
@@ -65,7 +65,8 @@ class RiskPortOP():
         assert self.N == n_assets
         
         assert self.M == n_samples
-                
+              
+
 
         Q = self.Q
         Q = Q.expand(batch_size, Q.size(0), Q.size(1))
@@ -105,9 +106,6 @@ class RiskPortOP():
     def calc_f_dataset(self, Y_dist_pred, Y_dist):
         Y_dist_pred = Y_dist_pred.permute((1, 0, 2))
         _, zstar_pred = self.forward(Y_dist_pred)
-        #_, zstar = self.forward(Y_dist)
-        #self.OP_Z.M = Y_dist.shape[1]
-        #alphastar_pred = self.OP_Z.forward(Y_dist, zstar_pred)
         loss_risk = self.risk_loss_dataset(Y_dist, zstar_pred)
         return loss_risk
     

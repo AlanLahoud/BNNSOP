@@ -64,17 +64,17 @@ def run_minimax_op(
         EPOCHS = 100
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.001
+        lr = 0.0002
         EPOCHS = 100
         pt = 50
-        BATCH_SIZE_LOADER = 128
+        BATCH_SIZE_LOADER = 256
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
-        EPOCHS = 150
+        EPOCHS = 100
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
         lr = 0.0005
-        EPOCHS = 150
+        EPOCHS = 100
         pt = -1
       
     # Aleatoric Uncertainty Modeling
@@ -88,9 +88,9 @@ def run_minimax_op(
         cpu_count = 1
 
         
-    N_train = 1000
-    N_val = 500
-    N_test = 1000
+    N_train = 3000
+    N_val = 1000
+    N_test = 2000
 
     n_samples_orig = 100
 

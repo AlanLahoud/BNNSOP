@@ -188,12 +188,9 @@ def gen_data(N, n_assets, nl, seed_number=42, samples_dist=1):
         Y = np.zeros((N, n_assets))
         for i in range(1, n_assets + 1):
             interm = gen_intermediate(i, n_assets, x1, x2, x3)
-            Y[:,i-1] = (np.sin(interm) - np.sin(interm).mean()) \
-            + np.sin(interm).std()*(np.random.random())
+            Y[:,i-1] = (np.sin(interm) - np.sin(interm).mean())
 
-            ns = Y[:,0].shape[0]//2
-
-            Y[:,i-1] = Y[:,i-1] + nl*Y[:,i-1]*x1*(np.random.beta(5, 2, size = Y[:,0].shape) - 0.2)
+            Y[:,i-1] = 0.2 + Y[:,i-1] - np.abs(nl*np.abs(x1)*(np.random.exponential(1, size=Y[:,0].shape)))
         return Y
         
     Y = geny(x1, x2, x3, N, n_assets)
