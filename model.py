@@ -357,7 +357,7 @@ class StrongVariationalNet(nn.Module):
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         # Hidden layer sizes
-        hl_sizes = [512, 128] 
+        hl_sizes = [32, 32]
         mu_init=0.1
         rho_init=-5
         self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
