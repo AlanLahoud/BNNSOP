@@ -64,7 +64,7 @@ def run_minimax_op(
         EPOCHS = 100
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.0002
+        lr = 0.0005
         EPOCHS = 100
         pt = 50
         BATCH_SIZE_LOADER = 256
@@ -265,6 +265,7 @@ if __name__ == '__main__':
         sc_l.append(sc_list)
         oc_l.append(oc_list)
             
-    print(np.array(fc_l))
+    print(np.array(fc_l) - np.array(sc_l))
+    print(np.array(fc_l) - np.array(oc_l))
     
     

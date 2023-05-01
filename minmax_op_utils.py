@@ -37,11 +37,13 @@ class RiskPortOP():
         positive_ineq = torch.diag(-torch.ones(self.M+self.N)).to(self.dev)
         
         self.ineqs = torch.vstack(( det_ineq, # profit bound
+                                    -det_ineq, # profit bound
                                    positive_ineq # positive variables
                                   )).to(self.dev)
         
         
         self.bounds = torch.hstack(( torch.tensor(-self.R), # profit bound
+                                    torch.tensor(1.001*self.R), # profit bound
                                     torch.zeros(self.M + self.N), # positive variables
                                     torch.zeros(self.M) )).to(self.dev) # max ineq
         
@@ -92,7 +94,11 @@ class RiskPortOP():
              bounds.double(), self.e, self.e).double()
         
         ustar = argmin[:, :self.M]
-        zstar = argmin[:, self.M:]
+        zstar = argmin[:, self.M:]    
+        
+        if not (torch.all(ustar >= -0.00001) and torch.all(zstar >= -0.00001)):
+            import pdb
+            pdb.set_trace()
         
         assert torch.all(ustar >= -0.00001)
         assert torch.all(zstar >= -0.00001)
