@@ -88,7 +88,7 @@ def run_minimax_op(
         cpu_count = 1
 
         
-    N_train = 3000
+    N_train = 2000
     N_val = 1000
     N_test = 2000
 
