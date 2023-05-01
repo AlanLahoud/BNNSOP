@@ -66,7 +66,7 @@ def run_minimax_op(
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0005
         EPOCHS = 150
-        pt = -1
+        pt = 50
         #BATCH_SIZE_LOADER = 256
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
@@ -75,7 +75,7 @@ def run_minimax_op(
     if method_learning == 'combined' and method_name == 'bnn':
         lr = 0.0005
         EPOCHS = 150
-        pt = -1
+        pt = 50
       
     # Aleatoric Uncertainty Modeling
     aleat_bool=True
@@ -95,7 +95,7 @@ def run_minimax_op(
     n_samples_orig = 100
 
     # Noise level in the portfolio (aleatoric uncertainty)
-    nl = 0.3
+    nl = 0.2
 
     # Generating assets dataset
     X, Y_original, _ = data_generator.gen_data(N_train, N_ASSETS, nl, seed_number, n_samples_orig)
