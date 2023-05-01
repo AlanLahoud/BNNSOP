@@ -15,7 +15,7 @@ class RiskPortOP():
         self.M = n_samples
         
         self.R = min_return 
-        self.uy = Y_train.mean(axis=0)
+        self.uy = torch.clip(Y_train.mean(axis=0), torch.tensor(0.001), None)
                   
         self.Q = 0.00001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
