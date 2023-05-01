@@ -57,7 +57,7 @@ def run_minimax_op(
        
     
     EPOCHS = 200  # Epochs on training   
-    BATCH_SIZE_LOADER = 256
+    BATCH_SIZE_LOADER = 64
       
     if method_learning == 'decoupled' and method_name == 'ann':
         lr = 0.001
