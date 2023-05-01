@@ -66,7 +66,7 @@ def run_minimax_op(
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0005
         EPOCHS = 100
-        pt = 50
+        pt = -1
         BATCH_SIZE_LOADER = 256
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
