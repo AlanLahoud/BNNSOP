@@ -46,7 +46,7 @@ class RiskPortOP():
         self.bounds = torch.hstack(( torch.tensor(-self.R), # profit bound
                                     torch.tensor(1.001*self.R), # profit bound
                                     torch.zeros(self.M + self.N), # positive variables
-                                    99999.*torch.ones(self.M + self.N), # bound variables
+                                    9999999.*torch.ones(self.M + self.N), # bound variables
                                     torch.zeros(self.M) )).to(self.dev) # max ineq
         
 
