@@ -265,7 +265,14 @@ if __name__ == '__main__':
         sc_l.append(sc_list)
         oc_l.append(oc_list)
             
-    print(np.array(fc_l) - np.array(sc_l))
-    print(np.array(fc_l) - np.array(oc_l))
+    print('Costs', np.array(fc_l))        
+    print('FRs', np.array(fc_l) - np.array(sc_l))
+    print('Rs', np.array(fc_l) - np.array(oc_l))
+    
+    print('FRmean',  (np.array(fc_l) - np.array(sc_l)).mean(0) )
+    print('Rmean',  (np.array(fc_l) - np.array(oc_l)).mean(0) )
+    
+    print('FRstd',  (np.array(fc_l) - np.array(sc_l)).std(0) )
+    print('Rstd',  (np.array(fc_l) - np.array(oc_l)).std(0) )
     
     

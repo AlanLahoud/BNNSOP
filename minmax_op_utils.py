@@ -38,13 +38,15 @@ class RiskPortOP():
         
         self.ineqs = torch.vstack(( det_ineq, # profit bound
                                     -det_ineq, # profit bound
-                                   positive_ineq # positive variables
+                                   positive_ineq, # positive variables
+                                   -positive_ineq # bound variables
                                   )).to(self.dev)
         
         
         self.bounds = torch.hstack(( torch.tensor(-self.R), # profit bound
                                     torch.tensor(1.001*self.R), # profit bound
                                     torch.zeros(self.M + self.N), # positive variables
+                                    99999.*torch.ones(self.M + self.N), # bound variables
                                     torch.zeros(self.M) )).to(self.dev) # max ineq
         
 
@@ -79,7 +81,6 @@ class RiskPortOP():
         # max ineq
         unc_ineq = torch.dstack(( -self.eyeM.expand(batch_size, self.M, self.M), 
                                   -Y_dist ))
-        
         
         ineqs = torch.unsqueeze(self.ineqs, dim=0)
         ineqs = ineqs.expand(batch_size, ineqs.shape[1], ineqs.shape[2])
