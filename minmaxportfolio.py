@@ -72,7 +72,7 @@ def run_minimax_op(
         EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
-        lr = 0.0001
+        lr = 0.0004
         EPOCHS = 150
         pt = -1
       
