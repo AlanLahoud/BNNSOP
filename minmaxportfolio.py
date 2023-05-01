@@ -95,7 +95,7 @@ def run_minimax_op(
     n_samples_orig = 100
 
     # Noise level in the portfolio (aleatoric uncertainty)
-    nl = 0.3
+    nl = 0.2
 
     # Generating assets dataset
     X, Y_original, _ = data_generator.gen_data(N_train, N_ASSETS, nl, seed_number, n_samples_orig)
