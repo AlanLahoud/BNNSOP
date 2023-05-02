@@ -9,6 +9,7 @@ import sys
 
 import data_generator
 from model import VariableStandardNet, VariableVariationalNet
+from model import StrongStandardNet, StrongVariationalNet
 from train import TrainDecoupled, TrainCombined
 
 from sklearn.preprocessing import StandardScaler
@@ -149,7 +150,7 @@ def run_minimax_op(
     
     
     if method_name == 'bnn':
-        h = VariableVariationalNet(
+        h = StrongVariationalNet(
         n_samples=N_SAMPLES,
         input_size=X.shape[1], 
         output_size=Y.shape[1], 
@@ -160,7 +161,7 @@ def run_minimax_op(
     
     #ANN Baseline model
     elif method_name == 'ann':
-        h = VariableStandardNet(X.shape[1], Y.shape[1]).to(dev)
+        h = StrongStandardNet(X.shape[1], Y.shape[1]).to(dev)
         K = 0 # There is no K in ANN
         N_SAMPLES = 1
 
