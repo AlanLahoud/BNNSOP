@@ -93,7 +93,7 @@ def run_minimax_op(
         
     N_train = 2500
     N_val = 1500
-    N_test = 2500
+    N_test = 1500
 
     n_samples_orig = 100
 
