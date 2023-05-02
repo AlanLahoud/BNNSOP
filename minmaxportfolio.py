@@ -146,7 +146,7 @@ def run_minimax_op(
     
     n_samples = Y.shape[0]
     N_ASSETS = Y.shape[1]
-    min_return = 100
+    min_return = 10000
     
     
     if method_name == 'bnn':
