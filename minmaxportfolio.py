@@ -195,8 +195,7 @@ def run_minimax_op(
                         scaler=scaler,
                         validation_loader=validation_loader,
                         OP=op,
-                        dev=dev,
-                        loss_data=mse_loss,
+                        dev=dev
                     )
         
 
