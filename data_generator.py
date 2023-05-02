@@ -202,7 +202,7 @@ def gen_data(N, n_assets, nl, seed_number=42, samples_dist=1):
             
             np.random.shuffle(noise)
                         
-            Y[:,i-1] = Y[:,i-1] + nl*np.abs(x1 + x2)*(noise)
+            Y[:,i-1] = Y[:,i-1] + 0.5 + nl*np.abs(x1 + x2)*(noise)
                     
         return Y
         
