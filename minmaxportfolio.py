@@ -91,9 +91,9 @@ def run_minimax_op(
         cpu_count = 1
 
         
-    N_train = 1800
-    N_val = 1000
-    N_test = 1800
+    N_train = 2500
+    N_val = 1500
+    N_test = 2500
 
     n_samples_orig = 100
 
