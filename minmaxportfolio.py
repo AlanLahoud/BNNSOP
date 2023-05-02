@@ -8,7 +8,7 @@ import random
 import sys
 
 import data_generator
-from model import VariableStandardNet, VariableVariationalNet
+#from model import VariableStandardNet, VariableVariationalNet
 from model import StrongStandardNet, StrongVariationalNet
 from train import TrainDecoupled, TrainCombined
 
