@@ -74,7 +74,7 @@ def run_minimax_op(
         EPOCHS = 200
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
-        warm_decoupled = True
+        warm_decoupled = False
         lr = 0.0005
         EPOCHS = 200
         pt = -1
