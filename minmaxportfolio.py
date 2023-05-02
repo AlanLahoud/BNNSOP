@@ -200,7 +200,7 @@ def run_minimax_op(
         
 
     if warm_decoupled:
-        EPOCHS1 = 150
+        EPOCHS1 = 30
     else:
         EPOCHS1 = EPOCHS
     model_used = train_NN.train(EPOCHS=EPOCHS1, pre_train=pt)
