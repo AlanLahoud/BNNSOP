@@ -305,7 +305,7 @@ class StrongVariationalNet(nn.Module):
         
         
 class VariableStandardNet(nn.Module):
-    def __init__(self, input_size, output_size, neurons=32):
+    def __init__(self, input_size, output_size, neurons=64):
         super().__init__()
         self.n_samples = 1
      
@@ -349,7 +349,7 @@ class VariableStandardNet(nn.Module):
      
     
 class VariableVariationalNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv, dev, var=-0.0001, neurons=32):
+    def __init__(self, n_samples, input_size, output_size, plv, dev, var=-0.0001, neurons=64):
         super().__init__()
         self.output_type_dist = True
         self.n_samples = n_samples
