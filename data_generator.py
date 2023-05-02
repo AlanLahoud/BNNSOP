@@ -192,7 +192,7 @@ def gen_data(N, n_assets, nl, seed_number=42, samples_dist=1):
 
             #Y[:,i-1] = 0.7 + Y[:,i-1] - np.abs(nl*np.abs(x1 + x2)*(np.random.exponential(1, size=Y[:,0].shape)))
                         
-            Y[:,i-1] = 0.2 + Y[:,i-1] - np.abs(nl*np.abs(x1)*(np.random.lognormal(0, 0.9, size=Y[:,0].shape)))
+            Y[:,i-1] = 0.4 + Y[:,i-1] - np.abs(nl*np.abs(x1)*(np.random.lognormal(0, 0.9, size=Y[:,0].shape)))
                         
         return Y
         
