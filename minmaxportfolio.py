@@ -58,7 +58,7 @@ def run_minimax_op(
        
     
     EPOCHS = 200  # Epochs on training   
-    BATCH_SIZE_LOADER = 64
+    BATCH_SIZE_LOADER = 32
     
     warm_decoupled = False
       
@@ -68,16 +68,16 @@ def run_minimax_op(
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0005
-        EPOCHS = 200
+        EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
-        EPOCHS = 200
+        EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
         warm_decoupled = False
         lr = 0.0005
-        EPOCHS = 200
+        EPOCHS = 150
         pt = -1
       
     # Aleatoric Uncertainty Modeling
