@@ -208,7 +208,7 @@ def run_minimax_op(
     if warm_decoupled:
         
         for g in opt_h.param_groups:
-        g['lr'] = lr/10
+            g['lr'] = lr/10
         
         train_NN = TrainCombined(
                         bnn = bnn,
