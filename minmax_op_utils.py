@@ -32,7 +32,7 @@ class RiskPortOP():
         
         self.eyeM = torch.eye(self.M).to(self.dev)
         
-        det_ineq = torch.hstack(( torch.zeros(self.M), -self.uy )).to(self.dev)
+        det_ineq = torch.hstack(( torch.zeros(self.M).to(self.dev), -self.uy )).to(self.dev)
         #det_ineq_2 = torch.hstack(( torch.zeros(self.M), self.uy, torch.tensor(0) ))
         
         #det_ineq = torch.vstack((det_ineq_1, det_ineq_2))
