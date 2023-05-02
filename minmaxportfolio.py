@@ -206,6 +206,8 @@ def run_minimax_op(
     model_used = train_NN.train(EPOCHS=EPOCHS1, pre_train=pt)
     
     if warm_decoupled:
+        
+        opt_h = torch.optim.Adam(model_used.parameters(), lr=lr/10)
         train_NN = TrainCombined(
                         bnn = bnn,
                         model=model_used,
