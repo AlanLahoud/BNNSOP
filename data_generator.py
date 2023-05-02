@@ -196,8 +196,8 @@ def gen_data(N, n_assets, nl, seed_number=42, samples_dist=1):
             szh = (Y[:,0].shape[0])//2
         
             noise = np.hstack(
-                (np.random.normal(-2, 3, szh), 
-                 np.random.normal(2, 1, sz - szh))
+                (np.random.normal(-3, 5, szh), 
+                 np.random.normal(3, 1, sz - szh))
             )
             
             np.random.shuffle(noise)

@@ -44,9 +44,9 @@ class RiskPortOP():
         
         
         self.bounds = torch.hstack(( torch.tensor(-self.R), # profit bound
-                                    torch.tensor(1.001*self.R), # profit bound
+                                    torch.tensor(1.0001*self.R), # profit bound
                                     torch.zeros(self.M + self.N), # positive variables
-                                    9999999.*torch.ones(self.M + self.N), # bound variables
+                                    99999999.*torch.ones(self.M + self.N), # bound variables
                                     torch.zeros(self.M) )).to(self.dev) # max ineq
         
 
@@ -98,6 +98,8 @@ class RiskPortOP():
         zstar = argmin[:, self.M:]    
         
         if not (torch.all(ustar >= -0.00001) and torch.all(zstar >= -0.00001)):
+            print(Y_dist.min())
+            print(Y_dist.max())
             import pdb
             pdb.set_trace()
         
