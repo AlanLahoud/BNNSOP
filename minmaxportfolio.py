@@ -58,6 +58,8 @@ def run_minimax_op(
     
     EPOCHS = 200  # Epochs on training   
     BATCH_SIZE_LOADER = 64
+    
+    warm_decoupled = False
       
     if method_learning == 'decoupled' and method_name == 'ann':
         lr = 0.001
@@ -72,6 +74,7 @@ def run_minimax_op(
         EPOCHS = 200
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
+        warm_decoupled = True
         lr = 0.0005
         EPOCHS = 200
         pt = -1
@@ -192,11 +195,34 @@ def run_minimax_op(
                         scaler=scaler,
                         validation_loader=validation_loader,
                         OP=op,
-                        dev=dev
+                        dev=dev,
+                        loss_data=mse_loss,
                     )
         
 
-    model_used = train_NN.train(EPOCHS=EPOCHS, pre_train=pt)
+    if warm_decoupled:
+        EPOCHS1 = 150
+    else:
+        EPOCHS1 = EPOCHS
+    model_used = train_NN.train(EPOCHS=EPOCHS1, pre_train=pt)
+    
+    if warm_decoupled:
+        train_NN = TrainCombined(
+                        bnn = bnn,
+                        model=model_used,
+                        opt=opt_h,
+                        K=K,
+                        aleat_bool=aleat_bool,
+                        training_loader=training_loader,
+                        scaler=scaler,
+                        validation_loader=validation_loader,
+                        OP=op,
+                        dev=dev,
+                        loss_data=mse_loss,
+                    )
+    
+        model_used = train_NN.train(EPOCHS=EPOCHS-EPOCHS1, pre_train=pt)
+    
     
     if method_name == 'ann':
         M_SAMPLES = [1]
