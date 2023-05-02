@@ -154,6 +154,7 @@ class RiskPortOP():
         n_assets = y.shape[1]
         
         uy = self.uy.detach().numpy()
+        R = self.R.detach().numpy()
         
         assert self.N == n_assets
            
@@ -174,7 +175,7 @@ class RiskPortOP():
             m += xsum(z[j]*y[i][j] for j in range(0, n_assets)) + u[i] >= 0
 
         for i in range(0, n_assets):
-            m += xsum(-z[i]*uy[i] for i in range(0, n_assets)) <= -self.R
+            m += xsum(-z[i]*uy[i] for i in range(0, n_assets)) <= -R
 
         m.optimize()
         f_opt = m.objective_value
