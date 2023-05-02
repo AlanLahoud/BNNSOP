@@ -58,7 +58,7 @@ def run_minimax_op(
        
     
     EPOCHS = 200  # Epochs on training   
-    BATCH_SIZE_LOADER = 32
+    BATCH_SIZE_LOADER = 128
     
     warm_decoupled = False
       
