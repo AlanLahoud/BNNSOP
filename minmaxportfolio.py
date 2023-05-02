@@ -137,8 +137,8 @@ def run_minimax_op(
     X_test = torch.tensor(X_test, dtype=torch.float32)
     Y_test_original = torch.tensor(
         Y_test_original, dtype=torch.float32)
-    data_test = data_generator.ArtificialDataset(
-        X_test, Y_test_original)
+    data_test = data_generator.ArtificialDistDataset(
+        X_test, Y_test_original, Y_test_dist)
     test_loader = torch.utils.data.DataLoader(
     data_test, batch_size=BATCH_SIZE_LOADER,
     shuffle=False, num_workers=cpu_count) 
@@ -230,19 +230,39 @@ def run_minimax_op(
     sc_list = []
     oc_list = []
     
-    op = op_utils.RiskPortOP(n_samples_orig, N_ASSETS, min_return, torch.tensor(Y_original), dev)
-    subopt_cost = op.end_loss_dist(torch.tensor(Y_test_dist).to(dev), Y_test_original.to(dev))
+    op_dist = op_utils.RiskPortOP(n_samples_orig, N_ASSETS, min_return, torch.tensor(Y_original), dev)
+    op_true = op_utils.RiskPortOP(1, N_ASSETS, min_return, torch.tensor(Y_original), dev)
     
-    op = op_utils.RiskPortOP(1, N_ASSETS, min_return, torch.tensor(Y_original), dev)
-    opt_cost = op.end_loss_dist(Y_test_original.unsqueeze(0).to(dev), Y_test_original.to(dev))
+    subopt_cost = 0
+    opt_cost = 0
+    for i, data in enumerate(test_loader):
+        _ , y_batch, y_dist = data
+        subopt_cost_ = op_dist.end_loss_dist(torch.permute(y_dist, (1, 0, 2)).to(dev), y_batch.to(dev)).detach()
+        opt_cost_ = op_true.end_loss_dist(y_batch.unsqueeze(0).to(dev), y_batch.to(dev)).detach()
+        subopt_cost += subopt_cost_
+        opt_cost += opt_cost_
+    
+    subopt_cost = subopt_cost/len(test_loader)
+    opt_cost = subopt_cost/len(test_loader)
     
     for M_opt in M_SAMPLES:
         model_used.update_n_samples(n_samples=M_opt)
-        Y_pred = model_used.forward_dist(X_test, aleat_bool)
-        Y_pred_original = inverse_transform(Y_pred)
         
         op = op_utils.RiskPortOP(M_opt, N_ASSETS, min_return, torch.tensor(Y_original), dev)
-        final_cost = op.end_loss_dist(Y_pred_original.to(dev), Y_test_original.to(dev))
+                
+        final_cost = 0
+        for i, data in enumerate(test_loader):
+            x_batch, y_batch, _ = data
+            x_batch = x_batch.to(dev)
+            y_batch = y_batch.to(dev)
+    
+            Y_pred = model_used.forward_dist(x_batch, aleat_bool)
+            Y_pred_original_ = inverse_transform(Y_pred)
+     
+            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
+            final_cost += final_cost_
+            
+        final_cost = final_cost/len(test_loader)
            
         fc_list.append(final_cost.item())
         sc_list.append(subopt_cost.item())

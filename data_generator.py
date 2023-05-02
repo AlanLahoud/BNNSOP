@@ -29,6 +29,23 @@ class ArtificialNoisyDataset(torch.utils.data.Dataset):
         X_i = self.X[idx]
         Y_i = self.Y[:,idx,:]
         return X_i, Y_i
+    
+    
+class ArtificialDistDataset(torch.utils.data.Dataset):
+    def __init__(self, X, Y, Ydist):
+        self.X = X
+        self.Y = Y
+        self.Ydist = Ydist
+        return
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        X_i = self.X[idx]
+        Y_i = self.Y[idx]
+        Ydist_i = self.Ydist[:,idx,:]
+        return X_i, Y_i, Ydist_i
 
 
 # Creating a nonlinear (x, y) data
