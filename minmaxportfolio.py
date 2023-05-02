@@ -170,7 +170,7 @@ def run_minimax_op(
     op = op_utils.RiskPortOP(N_SAMPLES, N_ASSETS, min_return, torch.tensor(Y_original), dev)
 
     # Decoupled learning approach
-    if method_learning == 'decoupled':
+    if method_learning == 'decoupled' or warm_decoupled:
         train_NN = TrainDecoupled(
                         bnn = bnn,
                         model=h,
