@@ -19,7 +19,7 @@ class RiskPortOP():
         self.N = n_assets
         self.M = n_samples
         
-        self.R = min_return 
+        self.R = torch.tensor(min_return) 
         self.uy = torch.clip(Y_train.mean(axis=0), torch.tensor(0.001), None)
         #self.uy = torch.ones_like(Y_train[0,:])
                   
