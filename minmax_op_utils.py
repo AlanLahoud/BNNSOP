@@ -103,16 +103,14 @@ class RiskPortOP():
         ustar = argmin[:, :self.M]
         zstar = argmin[:, self.M:]    
         
-        if not (torch.all(ustar >= -0.00001) and torch.all(zstar >= -0.00001)):
+        if not ((torch.all(ustar >= -0.00001) and torch.all(zstar >= -0.00001))):
             print(Y_dist.min())
             print(Y_dist.max())
-            import pdb
-            pdb.set_trace()
         
         assert torch.all(ustar >= -0.00001)
         assert torch.all(zstar >= -0.00001)
-        assert (self.uy*zstar).sum()>=0.99*self.R
-        assert (self.uy*zstar).sum()<=1.01*self.R
+        assert (self.uy*zstar).sum()>=0.99*self.R*batch_size
+        assert (self.uy*zstar).sum()<=1.01*self.R*batch_size
         
                     
         return ustar, zstar
