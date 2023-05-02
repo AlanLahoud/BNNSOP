@@ -1,6 +1,11 @@
 import torch
 from qpth.qp import QPFunction
 
+from mip import Model as ModelMip, xsum, minimize, maximize, \
+INTEGER, BINARY, CONTINUOUS, CutType, OptimizationStatus
+
+import numpy as np
+
 
 class RiskPortOP():
     """
@@ -16,8 +21,9 @@ class RiskPortOP():
         
         self.R = min_return 
         self.uy = torch.clip(Y_train.mean(axis=0), torch.tensor(0.001), None)
+        #self.uy = torch.ones_like(Y_train[0,:])
                   
-        self.Q = 0.00001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
+        self.Q = 0.001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
         self.lin = torch.hstack(( 
             (1/self.M)*torch.ones(self.M), 
@@ -90,7 +96,7 @@ class RiskPortOP():
         bounds = self.bounds.unsqueeze(dim=0).expand(
             batch_size, self.bounds.shape[0])
         
-        argmin = QPFunction(verbose=-1)\
+        argmin = QPFunction(verbose=1)\
             (2*Q.double(), lin.double(), ineqs.double(), 
              bounds.double(), self.e, self.e).double()
         
@@ -105,6 +111,9 @@ class RiskPortOP():
         
         assert torch.all(ustar >= -0.00001)
         assert torch.all(zstar >= -0.00001)
+        assert (self.uy*zstar).sum()>=0.99*self.R
+        assert (self.uy*zstar).sum()<=1.01*self.R
+        
                     
         return ustar, zstar
     
@@ -137,3 +146,59 @@ class RiskPortOP():
             y = y.unsqueeze(1)
         f_total = self.cost_fn(y_pred, y)
         return f_total
+    
+    
+    def min_true_sample(self, y):
+    
+        n_samples = y.shape[0]
+        n_assets = y.shape[1]
+        
+        uy = self.uy.detach().numpy()
+        
+        assert self.N == n_assets
+           
+        m = ModelMip("cvar")
+        m.verbose = 0
+        z = ([m.add_var(var_type=CONTINUOUS, name=f'z_{i}') for i in range(0, n_assets)])
+        u = ([m.add_var(var_type=CONTINUOUS, name=f'u_{i}') for i in range(0, n_samples)])
+
+        m.objective = minimize((1/n_samples)*xsum(u[i] for i in range(0, n_samples)))
+
+        for i in range(0, n_assets):
+            m += z[i] >= 0
+
+        for i in range(0, n_samples):
+            m += u[i] >= 0
+
+        for i in range(0, n_samples):
+            m += xsum(z[j]*y[i][j] for j in range(0, n_assets)) + u[i] >= 0
+
+        for i in range(0, n_assets):
+            m += xsum(-z[i]*uy[i] for i in range(0, n_assets)) <= -self.R
+
+        m.optimize()
+        f_opt = m.objective_value
+        argmins = []
+        for v in m.vars:
+            argmins.append(v.x)
+           
+        zstar = argmins[:n_assets]
+        ustar = argmins[n_assets:]
+
+        return zstar, ustar
+    
+    
+    def forward_true(self, Y_dist):
+        zstar = np.zeros_like(Y_dist[0])
+        for i in range(0, Y_dist.shape[1]):
+            zstar[i,:] , _ = self.min_true_sample(Y_dist[:,i,:])       
+        return zstar
+    
+    
+    
+    
+    
+    
+    
+    
+   
