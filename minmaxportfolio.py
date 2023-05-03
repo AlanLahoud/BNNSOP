@@ -70,7 +70,7 @@ def run_minimax_op(
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0005
-        EPOCHS = 2
+        EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.0005
