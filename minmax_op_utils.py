@@ -194,7 +194,7 @@ class RiskPortOP():
     def forward_true(self, Y_dist):
         zstar = np.zeros_like(Y_dist[0])
         for i in range(0, Y_dist.shape[1]):
-            zstar[i,:] , _ = self.min_true_sample(Y_dist[:,i,:])       
+             _ , zstar[i,:] = self.min_true_sample(Y_dist[:,i,:])       
         return zstar
 
     
