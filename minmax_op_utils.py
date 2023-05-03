@@ -133,7 +133,7 @@ class RiskPortOP():
         return loss_risk
     
     def cost_fn(self, y_pred, y, optm=False):
-        f = self.calc_f_dataset(y_pred, y)
+        f = self.calc_f_dataset(y_pred, y, optm)
         f_total = torch.mean(f)
         return f_total
 
