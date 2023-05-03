@@ -3,6 +3,8 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
+from gauss_proc import GP
+
 import joblib
 import random
 import sys
@@ -147,6 +149,19 @@ def run_minimax_op(
     n_samples = Y.shape[0]
     N_ASSETS = Y.shape[1]
     min_return = 10000
+    
+    
+    #GP Baseline model
+    if method_name == 'gp':
+        assert N_ASSETS >=1
+        model_gps = []
+        for k in range(0, N_ASSETS):
+            gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
+                    alpha_noise=0.01, white_noise=1, 
+                    n_restarts_optimizer=12)
+            gp.gp_fit(X.detach().numpy(), Y[:,k].detach().numpy())
+            model_gps.append(gp)
+            model_used = gp
     
     
     if method_name == 'bnn':

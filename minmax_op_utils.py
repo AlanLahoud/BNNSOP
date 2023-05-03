@@ -122,27 +122,31 @@ class RiskPortOP():
         loss_risk = (torch.max(u, torch.zeros_like(u)))/Y_dist.shape[1]
         return loss_risk
 
-    def calc_f_dataset(self, Y_dist_pred, Y_dist):
+    def calc_f_dataset(self, Y_dist_pred, Y_dist, optm=False):
         Y_dist_pred = Y_dist_pred.permute((1, 0, 2))
-        _, zstar_pred = self.forward(Y_dist_pred)
+        if optm:
+            _, zstar_pred = self.forward_true(Y_dist_pred.detach().numpy())
+            zstar_pred = torch.tensor(np.array(zstar_pred))
+        else:
+            _, zstar_pred = self.forward(Y_dist_pred)
         loss_risk = self.risk_loss_dataset(Y_dist, zstar_pred)
         return loss_risk
     
-    def cost_fn(self, y_pred, y):
+    def cost_fn(self, y_pred, y, optm=False):
         f = self.calc_f_dataset(y_pred, y)
         f_total = torch.mean(f)
         return f_total
 
-    def end_loss(self, y_pred, y):
+    def end_loss(self, y_pred, y, optm=False):
         y_pred = y_pred.unsqueeze(0)
         y = y.unsqueeze(1)
-        f_total = self.cost_fn(y_pred, y)
+        f_total = self.cost_fn(y_pred, y, optm)
         return f_total
 
-    def end_loss_dist(self, y_pred, y):
+    def end_loss_dist(self, y_pred, y, optm=False):
         if y.dim()==2:
             y = y.unsqueeze(1)
-        f_total = self.cost_fn(y_pred, y)
+        f_total = self.cost_fn(y_pred, y, optm)
         return f_total
     
     
@@ -184,7 +188,7 @@ class RiskPortOP():
         zstar = argmins[:n_assets]
         ustar = argmins[n_assets:]
 
-        return zstar, ustar
+        return ustar, zstar
     
     
     def forward_true(self, Y_dist):
@@ -192,7 +196,7 @@ class RiskPortOP():
         for i in range(0, Y_dist.shape[1]):
             zstar[i,:] , _ = self.min_true_sample(Y_dist[:,i,:])       
         return zstar
-    
+
     
     
     
