@@ -337,7 +337,7 @@ if __name__ == '__main__':
     
     N_train = 2500
     try:
-        N_train = int(sys.argv[5])
+        N_train = int(sys.argv[6])
     except:
         print(f'No training size provided, training with {N_train} samples')
     
