@@ -125,7 +125,7 @@ class RiskPortOP():
     def calc_f_dataset(self, Y_dist_pred, Y_dist, optm=False):
         Y_dist_pred = Y_dist_pred.permute((1, 0, 2))
         if optm:
-            _, zstar_pred = self.forward_true(Y_dist_pred.detach().numpy())
+            _, zstar_pred = self.forward_true(Y_dist_pred.cpu().detach().numpy())
             zstar_pred = torch.tensor(np.array(zstar_pred))
         else:
             _, zstar_pred = self.forward(Y_dist_pred)
