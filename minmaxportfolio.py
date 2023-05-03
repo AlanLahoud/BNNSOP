@@ -32,6 +32,7 @@ def run_minimax_op(
             N_SAMPLES,
             M_SAMPLES,
             N_ASSETS,
+            N_train,
             dev):
 
 
@@ -95,8 +96,8 @@ def run_minimax_op(
         cpu_count = 1
 
         
-    N_train = 2500
-    N_val = 1500
+    N_train = N_train
+    N_val = 3*N_train//5
     N_test = 1500
 
     n_samples_orig = 100
@@ -325,7 +326,7 @@ if __name__ == '__main__':
         dev = torch.device('cuda') 
 
         
-    assert (len(sys.argv)==6)
+    assert (len(sys.argv)==6 or len(sys.argv)==7)
     method_name = sys.argv[1] # ann or bnn or gp
     method_learning = sys.argv[2] # decoupled or combined
     nr_seeds = int(sys.argv[3]) # Average results through nr seeds
@@ -333,6 +334,12 @@ if __name__ == '__main__':
     M_SAMPLES = [64, 32, 16, 8, 4, 2, 1] # Sampling size while optimizing (M_opt)
     N_ASSETS = int(sys.argv[5])  # Sampling size while training (M_train)
     #M_SAMPLES = [8, 4, 2, 1] # Sampling size while optimizing (M_opt)
+    
+    N_train = 2500
+    try:
+        N_train = int(sys.argv[5])
+    except:
+        print(f'No training size provided, training with {N_train} samples')
     
     fc_l = []
     sc_l = []
@@ -346,6 +353,7 @@ if __name__ == '__main__':
                                         N_SAMPLES,
                                         M_SAMPLES,
                                         N_ASSETS,
+                                        N_train,
                                         dev)
         
         fc_l.append(fc_list)
