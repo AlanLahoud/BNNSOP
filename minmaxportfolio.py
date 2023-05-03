@@ -20,6 +20,8 @@ import torch.multiprocessing as mp
 
 import minmax_op_utils as op_utils
 
+from tqdm import tqdm
+
 
 
 
@@ -73,8 +75,8 @@ def run_minimax_op(
         EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0004
-        EPOCHS = 150
+        lr = 0.001
+        EPOCHS = 100
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
         warm_decoupled = False
@@ -150,92 +152,94 @@ def run_minimax_op(
     N_ASSETS = Y.shape[1]
     min_return = 10000
     
+    mse_loss = nn.MSELoss(reduction='none')
+    op = op_utils.RiskPortOP(N_SAMPLES, N_ASSETS, min_return, torch.tensor(Y_original), dev)
     
     #GP Baseline model
     if method_name == 'gp':
         assert N_ASSETS >=1
         model_gps = []
-        for k in range(0, N_ASSETS):
+        for k in tqdm(range(0, N_ASSETS)):
             gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
                     alpha_noise=0.01, white_noise=1, 
-                    n_restarts_optimizer=12)
+                    n_restarts_optimizer=3)
             gp.gp_fit(X.detach().numpy(), Y[:,k].detach().numpy())
             model_gps.append(gp)
             model_used = gp
     
-    
-    if method_name == 'bnn':
-        h = StrongVariationalNet(
-        n_samples=N_SAMPLES,
-        input_size=X.shape[1], 
-        output_size=Y.shape[1], 
-        plv=PLV, 
-        dev=dev
-        ).to(dev)
+    else:
+        if method_name == 'bnn':
+            h = StrongVariationalNet(
+            n_samples=N_SAMPLES,
+            input_size=X.shape[1], 
+            output_size=Y.shape[1], 
+            plv=PLV, 
+            dev=dev
+            ).to(dev)
 
-    
-    #ANN Baseline model
-    elif method_name == 'ann':
-        h = StrongStandardNet(X.shape[1], Y.shape[1]).to(dev)
-        K = 0 # There is no K in ANN
-        N_SAMPLES = 1
 
-    opt_h = torch.optim.Adam(h.parameters(), lr=lr)
-    mse_loss = nn.MSELoss(reduction='none')
+        #ANN Baseline model
+        elif method_name == 'ann':
+            h = StrongStandardNet(X.shape[1], Y.shape[1]).to(dev)
+            K = 0 # There is no K in ANN
+            N_SAMPLES = 1
 
-    op = op_utils.RiskPortOP(N_SAMPLES, N_ASSETS, min_return, torch.tensor(Y_original), dev)
+        opt_h = torch.optim.Adam(h.parameters(), lr=lr)  
+        
+        if method_name == 'ann':
+            opt_h = torch.optim.Adam(h.parameters(), lr=lr, weight_decay=10e-4)        
 
-    # Decoupled learning approach
-    if method_learning == 'decoupled' or warm_decoupled:
-        train_NN = TrainDecoupled(
-                        bnn = bnn,
-                        model=h,
-                        opt=opt_h,
-                        loss_data=mse_loss,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        validation_loader=validation_loader,
-                        dev=dev
-                    )
+        # Decoupled learning approach
+        if method_learning == 'decoupled' or warm_decoupled:
+            train_NN = TrainDecoupled(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            loss_data=mse_loss,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            validation_loader=validation_loader,
+                            dev=dev
+                        )
 
-    # Combined learning approach (end-to-end loss)
-    elif method_learning == 'combined':
-        train_NN = TrainCombined(
-                        bnn = bnn,
-                        model=h,
-                        opt=opt_h,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        scaler=scaler,
-                        validation_loader=validation_loader,
-                        OP=op,
-                        dev=dev
-                    )
+        # Combined learning approach (end-to-end loss)
+        elif method_learning == 'combined':
+            train_NN = TrainCombined(
+                            bnn = bnn,
+                            model=h,
+                            opt=opt_h,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            scaler=scaler,
+                            validation_loader=validation_loader,
+                            OP=op,
+                            dev=dev
+                        )
         
 
-    if warm_decoupled:
-        EPOCHS1 = 30
-    else:
-        EPOCHS1 = EPOCHS
-    model_used = train_NN.train(EPOCHS=EPOCHS1, pre_train=pt)
+        if warm_decoupled:
+            EPOCHS1 = 30
+        else:
+            EPOCHS1 = EPOCHS
+        model_used = train_NN.train(EPOCHS=EPOCHS1, pre_train=pt)
     
-    if warm_decoupled:
-        train_NN = TrainCombined(
-                        bnn = bnn,
-                        model=model_used,
-                        opt=opt_h,
-                        K=K,
-                        aleat_bool=aleat_bool,
-                        training_loader=training_loader,
-                        scaler=scaler,
-                        validation_loader=validation_loader,
-                        OP=op,
-                        dev=dev
-                    )
+        if warm_decoupled:
+            train_NN = TrainCombined(
+                            bnn = bnn,
+                            model=model_used,
+                            opt=opt_h,
+                            K=K,
+                            aleat_bool=aleat_bool,
+                            training_loader=training_loader,
+                            scaler=scaler,
+                            validation_loader=validation_loader,
+                            OP=op,
+                            dev=dev
+                        )
     
-        model_used = train_NN.train(EPOCHS=EPOCHS-EPOCHS1, pre_train=pt)
+            model_used = train_NN.train(EPOCHS=EPOCHS-EPOCHS1, pre_train=pt)
     
     
     if method_name == 'ann':
@@ -261,7 +265,12 @@ def run_minimax_op(
     opt_cost = subopt_cost/len(test_loader)
     
     for M_opt in M_SAMPLES:
-        model_used.update_n_samples(n_samples=M_opt)
+               
+        if method_name == 'gp':
+            for model in model_gps:
+                model.update_n_samples(n_samples=M_opt)
+        else:
+            model_used.update_n_samples(n_samples=M_opt)
         
         op = op_utils.RiskPortOP(M_opt, N_ASSETS, min_return, torch.tensor(Y_original), dev)
                 
@@ -270,8 +279,24 @@ def run_minimax_op(
             x_batch, y_batch, _ = data
             x_batch = x_batch.to(dev)
             y_batch = y_batch.to(dev)
+            
+            if method_name in ['ann','bnn']:
+                Y_pred = model_used.forward_dist(x_batch, aleat_bool)
+                
+            elif method_name in ['gp']:
+                Y_pred = torch.zeros_like(
+                    y_batch).unsqueeze(0).expand(
+                    M_opt, y_batch.shape[0], 
+                    y_batch.shape[1]).clone()
+                for k in range(0, len(model_gps)):
+                    Y_pred[:,:,k] = model_gps[k].forward_dist(
+                        x_batch, aleat_bool).squeeze()
+                
+            else:
+                print('Model not found')
+                break
     
-            Y_pred = model_used.forward_dist(x_batch, aleat_bool)
+            
             Y_pred_original_ = inverse_transform(Y_pred)
      
             if method_learning == 'decoupled':
