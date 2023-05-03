@@ -69,16 +69,16 @@ def run_minimax_op(
         EPOCHS = 100
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.0005
+        lr = 0.0004
         EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'ann':
-        lr = 0.0005
+        lr = 0.0004
         EPOCHS = 150
         pt = -1
     if method_learning == 'combined' and method_name == 'bnn':
         warm_decoupled = False
-        lr = 0.0005
+        lr = 0.0004
         EPOCHS = 150
         pt = -1
       
@@ -274,7 +274,10 @@ def run_minimax_op(
             Y_pred = model_used.forward_dist(x_batch, aleat_bool)
             Y_pred_original_ = inverse_transform(Y_pred)
      
-            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
+            if method_learning == 'decoupled':
+                final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev), True).detach()               
+            else:
+                final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
             final_cost += final_cost_
             
         final_cost = final_cost/len(test_loader)
