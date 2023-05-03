@@ -274,7 +274,7 @@ def run_minimax_op(
             Y_pred = model_used.forward_dist(x_batch, aleat_bool)
             Y_pred_original_ = inverse_transform(Y_pred)
      
-            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev), True).detach()
+            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
             final_cost += final_cost_
             
         final_cost = final_cost/len(test_loader)
