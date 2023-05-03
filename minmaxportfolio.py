@@ -33,6 +33,7 @@ def run_minimax_op(
             M_SAMPLES,
             N_ASSETS,
             N_train,
+            EPOCHS,
             dev):
 
 
@@ -62,7 +63,6 @@ def run_minimax_op(
     model_name += '_'+ str(seed_number)
        
     
-    EPOCHS = 200  # Epochs on training   
     BATCH_SIZE_LOADER = 128
     
     warm_decoupled = False
@@ -73,7 +73,7 @@ def run_minimax_op(
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
         lr = 0.0004
-        EPOCHS = 150
+        EPOCHS = EPOCHS
         pt = -1
     if method_learning == 'combined' and method_name == 'ann':
         lr = 0.001
@@ -82,7 +82,7 @@ def run_minimax_op(
     if method_learning == 'combined' and method_name == 'bnn':
         warm_decoupled = False
         lr = 0.0004
-        EPOCHS = 150
+        EPOCHS = EPOCHS
         pt = -1
       
     # Aleatoric Uncertainty Modeling
@@ -326,7 +326,7 @@ if __name__ == '__main__':
         dev = torch.device('cuda') 
 
         
-    assert (len(sys.argv)==6 or len(sys.argv)==7)
+    assert (len(sys.argv)==6 or len(sys.argv)==7 or len(sys.argv)==8)
     method_name = sys.argv[1] # ann or bnn or gp
     method_learning = sys.argv[2] # decoupled or combined
     nr_seeds = int(sys.argv[3]) # Average results through nr seeds
@@ -340,6 +340,13 @@ if __name__ == '__main__':
         N_train = int(sys.argv[6])
     except:
         print(f'No training size provided, training with {N_train} samples')
+        
+        
+    EPOCHS = 150
+    try:
+        EPOCHS = int(sys.argv[7])
+    except:
+        print(f'No EPOCH size provided, training with {EPOCHS} EPOCHS for BNNs')
     
     fc_l = []
     sc_l = []
@@ -354,6 +361,7 @@ if __name__ == '__main__':
                                         M_SAMPLES,
                                         N_ASSETS,
                                         N_train,
+                                        EPOCHS,
                                         dev)
         
         fc_l.append(fc_list)
