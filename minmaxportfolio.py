@@ -252,8 +252,8 @@ def run_minimax_op(
     opt_cost = 0
     for i, data in enumerate(test_loader):
         _ , y_batch, y_dist = data
-        subopt_cost_ = op_dist.end_loss_dist(torch.permute(y_dist, (1, 0, 2)).to(dev), y_batch.to(dev)).detach()
-        opt_cost_ = op_true.end_loss_dist(y_batch.unsqueeze(0).to(dev), y_batch.to(dev)).detach()
+        subopt_cost_ = op_dist.end_loss_dist(torch.permute(y_dist, (1, 0, 2)).to(dev), y_batch.to(dev), True).detach()
+        opt_cost_ = op_true.end_loss_dist(y_batch.unsqueeze(0).to(dev), y_batch.to(dev), True).detach()
         subopt_cost += subopt_cost_
         opt_cost += opt_cost_
     
@@ -274,7 +274,7 @@ def run_minimax_op(
             Y_pred = model_used.forward_dist(x_batch, aleat_bool)
             Y_pred_original_ = inverse_transform(Y_pred)
      
-            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
+            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev), True).detach()
             final_cost += final_cost_
             
         final_cost = final_cost/len(test_loader)
