@@ -155,8 +155,8 @@ class RiskPortOP():
         n_samples = y.shape[0]
         n_assets = y.shape[1]
         
-        uy = self.uy.detach().numpy()
-        R = self.R.detach().numpy()
+        uy = self.uy.cpu().detach().numpy()
+        R = self.R.cpu().detach().numpy()
         
         assert self.N == n_assets
            
