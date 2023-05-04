@@ -23,7 +23,7 @@ class RiskPortOP():
         self.uy = torch.clip(Y_train.mean(axis=0), torch.tensor(0.01), None).to(self.dev)
         #self.uy = torch.ones_like(Y_train[0,:])
                   
-        self.Q = 0.0001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
+        self.Q = 0.000001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
         self.lin = torch.hstack(( 
             (1/self.M)*torch.ones(self.M), 
@@ -117,20 +117,24 @@ class RiskPortOP():
         return ustar, zstar
     
     
-    def risk_loss_dataset(self, Y_dist, zstar_pred):        
+    def risk_loss_dataset(self, Y_dist, ustar_pred, zstar_pred):        
         loss_portfolio = -(Y_dist*zstar_pred.unsqueeze(1)).sum(2)
         u = loss_portfolio.squeeze()    
         loss_risk = (torch.max(u, torch.zeros_like(u)))/Y_dist.shape[1]
+        uz = torch.hstack((ustar_pred, zstar_pred))
+        loss_risk = loss_risk + ((uz@self.Q.double())*(uz)).sum(1)
+        
         return loss_risk
 
     def calc_f_dataset(self, Y_dist_pred, Y_dist, optm=False):
         Y_dist_pred = Y_dist_pred.permute((1, 0, 2))
-        if optm:
-            zstar_pred = self.forward_true(Y_dist_pred.cpu().detach().numpy())
-            zstar_pred = torch.tensor(np.array(zstar_pred)).to(self.dev)
-        else:
-            _, zstar_pred = self.forward(Y_dist_pred)
-        loss_risk = self.risk_loss_dataset(Y_dist, zstar_pred)
+        #if optm:
+        #    break # Due to approximation LP-QP problems we do not use it anymore
+        #    zstar_pred = self.forward_true(Y_dist_pred.cpu().detach().numpy())
+        #    zstar_pred = torch.tensor(np.array(zstar_pred)).to(self.dev)
+        #else:
+        ustar_pred, zstar_pred = self.forward(Y_dist_pred)
+        loss_risk = self.risk_loss_dataset(Y_dist, ustar_pred, zstar_pred)
         return loss_risk
     
     def cost_fn(self, y_pred, y, optm=False):
