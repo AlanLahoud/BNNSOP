@@ -23,7 +23,7 @@ class RiskPortOP():
         self.uy = torch.clip(Y_train.mean(axis=0), torch.tensor(0.01), None).to(self.dev)
         #self.uy = torch.ones_like(Y_train[0,:])
                   
-        self.Q = 0.1*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
+        self.Q = 0.000000001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
         self.lin = torch.hstack(( 
             (1/self.M)*torch.ones(self.M), 
@@ -45,14 +45,14 @@ class RiskPortOP():
         self.ineqs = torch.vstack(( det_ineq, # profit bound
                                     -det_ineq, # profit bound
                                    positive_ineq, # positive variables
-                                   -positive_ineq # bound variables
+                                   #-positive_ineq # bound variables
                                   )).to(self.dev)
         
         
         self.bounds = torch.hstack(( torch.tensor(-self.R).to(self.dev), # profit bound
-                                    torch.tensor(1.0001*self.R).to(self.dev), # profit bound
+                                    torch.tensor(1.0000001*self.R).to(self.dev), # profit bound
                                     torch.zeros(self.M + self.N).to(self.dev), # positive variables
-                                    999999.*torch.ones(self.M + self.N).to(self.dev), # bound variables
+                                    #999999.*torch.ones(self.M + self.N).to(self.dev), # bound variables
                                     torch.zeros(self.M).to(self.dev) )).to(self.dev) # max ineq
         
 
@@ -76,7 +76,8 @@ class RiskPortOP():
         
         assert self.M == n_samples
               
-
+        #import pdb
+        #pdb.set_trace()
 
         Q = self.Q
         Q = Q.expand(batch_size, Q.size(0), Q.size(1))
@@ -109,9 +110,9 @@ class RiskPortOP():
         
         assert torch.all(ustar >= -0.00001)
         assert torch.all(zstar >= -0.00001)
-        assert (self.uy*zstar).sum()>=0.99*self.R*batch_size
-        assert (self.uy*zstar).sum()<=1.01*self.R*batch_size
-        
+        assert (self.uy*zstar).sum()>=0.999*self.R*batch_size
+        assert (self.uy*zstar).sum()<=1.001*self.R*batch_size
+
                     
         return ustar, zstar
     
@@ -176,8 +177,7 @@ class RiskPortOP():
         for i in range(0, n_samples):
             m += xsum(z[j]*y[i][j] for j in range(0, n_assets)) + u[i] >= 0
 
-        for i in range(0, n_assets):
-            m += xsum(-z[i]*uy[i] for i in range(0, n_assets)) <= -R
+        m += xsum(-z[i]*uy[i] for i in range(0, n_assets)) <= -R
 
         m.optimize()
         f_opt = m.objective_value
