@@ -216,7 +216,8 @@ def run_minimax_op(
                             scaler=scaler,
                             validation_loader=validation_loader,
                             OP=op,
-                            dev=dev
+                            dev=dev,
+                            bm_stop=False
                         )
         
 

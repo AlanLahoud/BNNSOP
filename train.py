@@ -191,7 +191,7 @@ class TrainCombined():
     """
     def __init__(self, bnn, model, opt, K, aleat_bool, 
                  training_loader, scaler, validation_loader, 
-                 OP, dev, explr=0.99):
+                 OP, dev, explr=0.99, bm_stop=True):
         self.model = model # Neural network (ANN or BNN)
         self.opt = opt
         self.K = K # Useful only for BNN
@@ -207,6 +207,7 @@ class TrainCombined():
         self.dev = dev
         self.scheduler = torch.optim.lr_scheduler.ExponentialLR(
             opt, gamma=explr)
+        self.bm_stop = bm_stop
        
 
     def inverse_transform(self, inp):
@@ -357,5 +358,8 @@ class TrainCombined():
                 
             epoch_number += 1
             self.scheduler.step()
-            
-        return best_model
+        
+        if self.bm_stop:
+            return best_model
+        else:
+            return self.model
