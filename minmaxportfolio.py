@@ -72,7 +72,7 @@ def run_minimax_op(
         EPOCHS = 100
         pt = -1
     if method_learning == 'decoupled' and method_name == 'bnn':
-        lr = 0.0004
+        lr = 0.0007
         EPOCHS = EPOCHS
         pt = -1
     if method_learning == 'combined' and method_name == 'ann':
@@ -163,7 +163,7 @@ def run_minimax_op(
         for k in tqdm(range(0, N_ASSETS)):
             gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
                     alpha_noise=0.01, white_noise=1, 
-                    n_restarts_optimizer=3)
+                    n_restarts_optimizer=12)
             gp.gp_fit(X.detach().numpy(), Y[:,k].detach().numpy())
             model_gps.append(gp)
             model_used = gp
