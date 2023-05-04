@@ -23,7 +23,9 @@ class RiskPortOP():
         self.uy = torch.clip(Y_train.mean(axis=0), torch.tensor(0.01), None).to(self.dev)
         #self.uy = torch.ones_like(Y_train[0,:])
                   
-        self.Q = 0.0001*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
+        norm_factor = (self.N + self.M)*(self.N + self.M)
+            
+        self.Q = (1/norm_factor)*torch.diag(torch.ones(self.M + self.N)).to(self.dev)
         
         self.lin = torch.hstack(( 
             (1/self.M)*torch.ones(self.M), 
