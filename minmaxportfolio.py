@@ -100,7 +100,7 @@ def run_minimax_op(
     N_val = 3*N_train//5
     N_test = 1500
 
-    n_samples_orig = 500
+    n_samples_orig = 100
 
     # Noise level in the portfolio (aleatoric uncertainty)
     nl = 0.05
