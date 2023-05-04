@@ -100,7 +100,7 @@ def run_minimax_op(
     N_val = 3*N_train//5
     N_test = 1500
 
-    n_samples_orig = 100
+    n_samples_orig = 500
 
     # Noise level in the portfolio (aleatoric uncertainty)
     nl = 0.05
@@ -302,9 +302,9 @@ def run_minimax_op(
             Y_pred_original_ = inverse_transform(Y_pred)
      
             #if method_learning == 'decoupled':
-            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev), True).detach()               
+            #final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev), True).detach()               
             #else:
-                #final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
+            final_cost_ = op.end_loss_dist(Y_pred_original_.to(dev), y_batch.to(dev)).detach()
             final_cost += final_cost_
             
         final_cost = final_cost/len(test_loader)
