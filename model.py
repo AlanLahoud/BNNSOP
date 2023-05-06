@@ -299,17 +299,18 @@ class StrongVariationalNet(nn.Module):
         self.linear2.n_samples = n_samples
         self.linear3.n_samples = n_samples
         self.linear4.n_samples = n_samples
-        self.linear4_2.n_samples = n_samples  
-        
-
+        self.linear4_2.n_samples = n_samples 
         
         
-class VariableStandardNet(nn.Module):
-    def __init__(self, input_size, output_size, neurons=64):
+        
+        
+        
+class POStandardNet(nn.Module):
+    def __init__(self, input_size, output_size):
         super().__init__()
         self.n_samples = 1
      
-        hl_sizes = [neurons, neurons] 
+        hl_sizes = [512, 128] 
         self.act1 = nn.ReLU()
         self.linear1 = nn.Linear(input_size, hl_sizes[0])
         self.linear2 = nn.Linear(hl_sizes[0], hl_sizes[1])
@@ -325,7 +326,7 @@ class VariableStandardNet(nn.Module):
         x = self.linear3(x)
         x = self.act1(x)
         y_avg = self.linear4(x)
-        rho = self.linear4_2(x)
+        rho = self.act1(self.linear4_2(x)) - 2
         return y_avg, rho   
     
     def update_n_samples(self, n_samples):
@@ -346,16 +347,15 @@ class VariableStandardNet(nn.Module):
 
         return y_dist
           
-     
-    
-class VariableVariationalNet(nn.Module):
-    def __init__(self, n_samples, input_size, output_size, plv, dev, var=-0.0001, neurons=64):
+
+class POVariationalNet(nn.Module):
+    def __init__(self, n_samples, input_size, output_size, plv, dev, var=-0.0001):
         super().__init__()
         self.output_type_dist = True
         self.n_samples = n_samples
         self.act1 = nn.ReLU()
         # Hidden layer sizes
-        hl_sizes = [neurons, neurons] 
+        hl_sizes = [512, 128] 
         mu_init=0.1
         rho_init=-5
         self.linear1 = VariationalLayer(input_size, hl_sizes[0], 0, plv, n_samples, dev, -mu_init, mu_init, rho_init)
@@ -383,8 +383,11 @@ class VariableVariationalNet(nn.Module):
         x = self.linear3(x)
         x = self.act1(x)
 
-        y_avg = self.linear4(x)
-        rho = self.linear4_2(x)
+        y_avg = self.act1(self.linear4(x) + 1000) - 1000
+        y_avg = -self.act1(-y_avg + 1000) + 1000
+        
+        rho = self.act1(self.linear4_2(x) + 2) - 2
+        rho = self.act1(-rho + 2) + 2
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):
@@ -412,6 +415,7 @@ class VariableVariationalNet(nn.Module):
         self.linear2.n_samples = n_samples
         self.linear3.n_samples = n_samples
         self.linear4.n_samples = n_samples
-        self.linear4_2.n_samples = n_samples  
+        self.linear4_2.n_samples = n_samples 
         
 
+        

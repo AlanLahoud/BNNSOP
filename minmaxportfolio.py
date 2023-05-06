@@ -264,7 +264,7 @@ def run_minimax_op(
         opt_cost += opt_cost_
     
     subopt_cost = subopt_cost/len(test_loader)
-    opt_cost = subopt_cost/len(test_loader)
+    opt_cost = opt_cost/len(test_loader)
     
     for M_opt in M_SAMPLES:
                

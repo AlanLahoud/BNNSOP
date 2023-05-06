@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 from sklearn import preprocessing
 
@@ -237,3 +238,58 @@ def gen_cond_dist(N, n_assets, n_samples, nl, seed_number=420):
     for i in range(0, n_samples):
         Y_dist[i, :, :] = gen_data(N, n_assets, nl, seed_number=np.random.randint(0,999999))[1]
     return Y_dist
+
+
+
+def gen_processed_stocks():
+
+    def process_stocks(dfs):
+
+        feat_technical = ['Volume', 'mom1', 'mom2', 'mom3',
+                         'ROC_5','ROC_10', 'ROC_15', 'ROC_20',
+                         'EMA_10', 'EMA_20', 'EMA_50', 'EMA_200']
+
+        df_total = pd.DataFrame()
+        Y = np.zeros((dfs[0].shape[0], len(dfs)))
+        for i, df in enumerate(dfs):
+            df_total = pd.concat([df_total, df[feat_technical]], axis=1)
+            Y[:,i] = df['Close'].pct_change().fillna(0)
+
+
+        feat_common = ['DTB4WK', 'DTB3', 'DTB6', 'DGS5', 'DGS10', 'Oil', 'Gold', 'DAAA',
+                        'DBAA', 'GBP', 'JPY', 'CAD', 'CNY', 'AAPL', 'AMZN', 'GE', 'JNJ', 'JPM',
+                        'MSFT', 'WFC', 'XOM', 'FCHI', 'FTSE', 'GDAXI', 'GSPC', 'HSI', 'IXIC',
+                        'SSEC', 'RUT', 'NYSE', 'TE1', 'TE2', 'TE3', 'TE5', 'TE6', 'DE1', 'DE2',
+                        'DE4', 'DE5', 'DE6', 'CTB3M', 'CTB6M', 'CTB1Y', 'AUD', 'Brent',
+                        'CAC-F', 'copper-F', 'WIT-oil', 'DAX-F', 'DJI-F', 'EUR', 'FTSE-F',
+                        'gold-F', 'HSI-F', 'KOSPI-F', 'NASDAQ-F', 'GAS-F', 'Nikkei-F', 'NZD',
+                        'silver-F', 'RUSSELL-F', 'S&P-F', 'CHF', 'Dollar index-F',
+                        'Dollar index', 'wheat-F', 'XAG', 'XAU']
+
+        df_total = pd.concat([df_total, dfs[0][feat_common]], axis=1)
+
+        X = np.array(df_total.fillna(0))
+
+        return X, Y
+
+    df_dji = pd.read_csv('./data_stocks/Processed_DJI.csv')
+    df_nas = pd.read_csv('./data_stocks/Processed_NASDAQ.csv')
+    df_nyse = pd.read_csv('./data_stocks/Processed_NYSE.csv')
+    df_rus = pd.read_csv('./data_stocks/Processed_RUSSELL.csv')
+    df_sp = pd.read_csv('./data_stocks/Processed_S&P.csv')
+
+    X, Y = process_stocks([df_dji, df_nas, df_nyse, df_rus, df_sp])
+    
+    corr = np.corrcoef(np.hstack((X, Y)).T)
+
+    a = list(np.argwhere((corr[-1,:]>0.1)).squeeze())
+    b = list(np.argwhere((corr[-2,:]>0.1)).squeeze())
+    c = list(np.argwhere((corr[-3,:]>0.1)).squeeze())
+    d = list(np.argwhere((corr[-4,:]>0.1)).squeeze())
+    e = list(np.argwhere((corr[-5,:]>0.1)).squeeze())
+
+    Xcols = list(set(list(np.arange(0,133))) - set.intersection(set(list(np.arange(0,133))), set(a + b + c + d + e)))
+    
+    X = X[:, Xcols]
+    
+    return X, Y, None
