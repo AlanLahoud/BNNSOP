@@ -11,7 +11,7 @@ import sys
 
 import data_generator
 #from model import VariableStandardNet, VariableVariationalNet
-from model import StrongStandardNet, StrongVariationalNet
+from model import POStandardNet, POVariationalNet
 from train import TrainDecoupled, TrainCombined
 
 from sklearn.preprocessing import StandardScaler
@@ -170,7 +170,7 @@ def run_minimax_op(
     
     else:
         if method_name == 'bnn':
-            h = StrongVariationalNet(
+            h = POVariationalNet(
             n_samples=N_SAMPLES,
             input_size=X.shape[1], 
             output_size=Y.shape[1], 
@@ -181,7 +181,7 @@ def run_minimax_op(
 
         #ANN Baseline model
         elif method_name == 'ann':
-            h = StrongStandardNet(X.shape[1], Y.shape[1]).to(dev)
+            h = POStandardNet(X.shape[1], Y.shape[1]).to(dev)
             K = 0 # There is no K in ANN
             N_SAMPLES = 1
 
@@ -332,7 +332,7 @@ if __name__ == '__main__':
     method_learning = sys.argv[2] # decoupled or combined
     nr_seeds = int(sys.argv[3]) # Average results through nr seeds
     N_SAMPLES = int(sys.argv[4])  # Sampling size while training (M_train)
-    M_SAMPLES = [64, 32, 16, 8, 4, 2, 1] # Sampling size while optimizing (M_opt)
+    M_SAMPLES = [250, 200, 150, 128, 64, 32, 16, 8] # Sampling size while optimizing (M_opt)
     N_ASSETS = int(sys.argv[5])  # Sampling size while training (M_train)
     #M_SAMPLES = [8, 4, 2, 1] # Sampling size while optimizing (M_opt)
     
