@@ -18,7 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 import torch.multiprocessing as mp
 
-import minmax_op_utils_2 as op_utils
+import minmax_op_utils as op_utils
 
 from tqdm import tqdm
 
