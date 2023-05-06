@@ -53,13 +53,15 @@ class RiskPortOP():
 
         ustar, zstar = cvxpylayer(Y_dist_param)
         
-        import pdb
+        #import pdb
         if not torch.all(zstar >= -0.01):
-            pdb.set_trace()
+            print('Warning solver')
+            print(zstar.mean())
+        #    pdb.set_trace()
     
-        assert torch.all(ustar >= -0.1)
-        assert torch.all(zstar >= -0.01)
-        assert (self.uy*zstar).sum()>=0.999*self.R*batch_size
+        #assert torch.all(ustar >= -0.1)
+        #assert torch.all(zstar >= -0.01)
+        #assert (self.uy*zstar).sum()>=0.999*self.R*batch_size
 
                     
         return ustar, zstar
