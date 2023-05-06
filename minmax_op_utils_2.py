@@ -20,8 +20,8 @@ class RiskPortOP():
         self.N = n_assets
         self.M = n_samples
         
-        self.R = torch.tensor(min_return).to(self.dev)
-        self.uy = torch.clip(Y_train.mean(axis=0), 0.1, None).to(self.dev)
+        self.R = torch.tensor(min_return)#.to(self.dev)
+        self.uy = torch.clip(Y_train.mean(axis=0), 0.1, None)#.to(self.dev)
 
         
         
@@ -32,8 +32,8 @@ class RiskPortOP():
         assert self.N == n_assets        
         assert self.M == n_samples              
 
-        u = cp.Variable(self.M).to(self.dev)
-        z = cp.Variable(self.N).to(self.dev)
+        u = cp.Variable(self.M)
+        z = cp.Variable(self.N)
 
         Y_dist_param = cp.Parameter((self.M, self.N)).to(self.dev)
 
