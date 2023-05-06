@@ -387,7 +387,7 @@ class POVariationalNet(nn.Module):
         y_avg = -self.act1(-y_avg + 1000) + 1000
         
         rho = self.act1(self.linear4_2(x) + 2) - 2
-        rho = self.act1(-rho + 2) + 2
+        rho = -self.act1(-rho + 2) + 2
         return y_avg, rho
     
     def forward_dist(self, x, aleat_bool):

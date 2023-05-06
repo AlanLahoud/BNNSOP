@@ -282,11 +282,11 @@ def gen_processed_stocks():
     
     corr = np.corrcoef(np.hstack((X, Y)).T)
 
-    a = list(np.argwhere((corr[-1,:]>0.1)).squeeze())
-    b = list(np.argwhere((corr[-2,:]>0.1)).squeeze())
-    c = list(np.argwhere((corr[-3,:]>0.1)).squeeze())
-    d = list(np.argwhere((corr[-4,:]>0.1)).squeeze())
-    e = list(np.argwhere((corr[-5,:]>0.1)).squeeze())
+    a = list(np.argwhere((corr[-1,:]>0.3)).squeeze())
+    b = list(np.argwhere((corr[-2,:]>0.3)).squeeze())
+    c = list(np.argwhere((corr[-3,:]>0.3)).squeeze())
+    d = list(np.argwhere((corr[-4,:]>0.3)).squeeze())
+    e = list(np.argwhere((corr[-5,:]>0.3)).squeeze())
 
     Xcols = list(set(list(np.arange(0,133))) - set.intersection(set(list(np.arange(0,133))), set(a + b + c + d + e)))
     
