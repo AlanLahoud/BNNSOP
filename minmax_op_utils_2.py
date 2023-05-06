@@ -35,7 +35,7 @@ class RiskPortOP():
         u = cp.Variable(self.M)
         z = cp.Variable(self.N)
 
-        Y_dist_param = cp.Parameter((self.M, self.N)).to(self.dev)
+        Y_dist_param = cp.Parameter((self.M, self.N))
 
         constraints = [u >= 0.00, z>=0.00, Y_dist_param @ z + u >=0.00, 
                        cp.sum(cp.multiply(z,self.uy)) >= self.R]
