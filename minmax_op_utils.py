@@ -25,8 +25,8 @@ class RiskPortOP():
                   
         norm_factor = (self.N + self.M)*(self.N + self.M)
         
-        qu = (1/self.M)*(1/self.M)*torch.ones(self.M)
-        qz = (1/self.N)*(1/self.N)*torch.ones(self.N)
+        qu = 0.001*(1/self.M)*torch.ones(self.M)
+        qz = 0.001*(1/self.N)*torch.ones(self.N)
         
         self.Q = torch.diag(torch.hstack((qu, qz))).to(self.dev)
         
@@ -108,13 +108,17 @@ class RiskPortOP():
         ustar = argmin[:, :self.M]
         zstar = argmin[:, self.M:]    
         
+
+        
         if not ((torch.all(ustar >= -0.1) and torch.all(zstar >= -0.01))):
             print("Warning solver")
-            print(zstar.min(), zstar.mean())
             
         if not (self.uy*zstar).sum()>=0.999*self.R*batch_size:
             print("Warning solver")
-            print( (self.uy*zstar).sum().mean() )
+            
+        if not torch.all(zstar >= -0.01):
+            zstar = torch.where(zstar<-0.01, self.R/self.uy.sum().double(), zstar)
+            print("Projecting zstar to feasibility")
         
         #assert torch.all(ustar >= -0.00001)
         #assert torch.all(zstar >= -0.00001)
