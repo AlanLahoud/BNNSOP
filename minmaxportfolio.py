@@ -163,7 +163,7 @@ def run_minimax_op(
         for k in tqdm(range(0, N_ASSETS)):
             gp = GP(length_scale=1, length_scale_bounds=(1e-2, 1e4), 
                     alpha_noise=0.01, white_noise=1, 
-                    n_restarts_optimizer=12)
+                    n_restarts_optimizer=4)
             gp.gp_fit(X.detach().numpy(), Y[:,k].detach().numpy())
             model_gps.append(gp)
             model_used = gp
@@ -336,7 +336,7 @@ if __name__ == '__main__':
     N_ASSETS = int(sys.argv[5])  # Sampling size while training (M_train)
     #M_SAMPLES = [8, 4, 2, 1] # Sampling size while optimizing (M_opt)
     
-    N_train = 2500
+    N_train = 1500
     try:
         N_train = int(sys.argv[6])
     except:

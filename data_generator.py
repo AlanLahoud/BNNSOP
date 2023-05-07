@@ -292,4 +292,6 @@ def gen_processed_stocks():
     
     X = X[:, Xcols]
     
+    Y = 1000*Y #to avoid problems in the approx solver
+    
     return X, Y, None
