@@ -9,7 +9,7 @@ import numpy as np
 
 class RiskPortOP():
     """
-    Quadratic Newsvendor Stochastic Optimization Problem class.
+    Risk Portfolio    
     Init with deterministic parameters params_t and solve it for n_samples.
     """
     def __init__(self, n_samples, n_assets, min_return, Y_train, dev):
@@ -38,26 +38,18 @@ class RiskPortOP():
         self.eyeM = torch.eye(self.M).to(self.dev)
         
         det_ineq = torch.hstack(( torch.zeros(self.M).to(self.dev), -self.uy )).to(self.dev)
-        #det_ineq_2 = torch.hstack(( torch.zeros(self.M), self.uy, torch.tensor(0) ))
-        
-        #det_ineq = torch.vstack((det_ineq_1, det_ineq_2))
-        
-        #positive_ineq = torch.hstack( (torch.diag(-torch.ones(self.M+self.N)), 
-        #                               torch.zeros(self.M+self.N).unsqueeze(0).T ))
         
         positive_ineq = torch.diag(-torch.ones(self.M+self.N)).to(self.dev)
         
         self.ineqs = torch.vstack(( det_ineq, # profit bound
                                     -det_ineq, # profit bound
                                    positive_ineq, # positive variables
-                                   #-positive_ineq # bound variables
                                   )).to(self.dev)
         
         
-        self.bounds = torch.hstack(( torch.tensor(-self.R).to(self.dev), # profit bound
+        self.bounds = torch.hstack((torch.tensor(-self.R).to(self.dev), # profit bound
                                     torch.tensor(1.0000001*self.R).to(self.dev), # profit bound
                                     torch.zeros(self.M + self.N).to(self.dev), # positive variables
-                                    #999999.*torch.ones(self.M + self.N).to(self.dev), # bound variables
                                     torch.zeros(self.M).to(self.dev) )).to(self.dev) # max ineq
         
 
@@ -91,25 +83,23 @@ class RiskPortOP():
         
         # max ineq
         unc_ineq = torch.dstack(( -self.eyeM.expand(batch_size, self.M, self.M), 
-                                  -Y_dist ))
-        
+                                  -Y_dist ))        
         ineqs = torch.unsqueeze(self.ineqs, dim=0)
         ineqs = ineqs.expand(batch_size, ineqs.shape[1], ineqs.shape[2])
-                
+
+            
         ineqs = torch.hstack(( ineqs, unc_ineq ))
         
         bounds = self.bounds.unsqueeze(dim=0).expand(
             batch_size, self.bounds.shape[0])
-        
+
         argmin = QPFunction(verbose=-1)\
             (2*Q.double(), lin.double(), ineqs.double(), 
              bounds.double(), self.e, self.e).double()
         
         ustar = argmin[:, :self.M]
         zstar = argmin[:, self.M:]    
-        
 
-        
         if not ((torch.all(ustar >= -0.1) and torch.all(zstar >= -0.01))):
             print("Warning solver")
             
@@ -119,13 +109,7 @@ class RiskPortOP():
         if not torch.all(zstar >= -0.01):
             zstar = torch.where(zstar<-0.01, self.R/self.uy.sum().double(), zstar)
             print("Projecting zstar to feasibility")
-        
-        #assert torch.all(ustar >= -0.00001)
-        #assert torch.all(zstar >= -0.00001)
-        #assert (self.uy*zstar).sum()>=0.999*self.R*batch_size
-        #assert (self.uy*zstar).sum()<=1.001*self.R*batch_size
-
-                    
+                  
         return ustar, zstar
     
     

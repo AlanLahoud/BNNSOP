@@ -262,7 +262,7 @@ class TrainCombined():
                 end_loss_ = self.end_loss(y_preds, y_batch)                
                 kl_loss_ = torch.tensor(0)
                 total_loss = end_loss_ + kl_loss_
-                
+            
             total_loss.backward()
             self.opt.step()
 

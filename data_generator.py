@@ -85,7 +85,15 @@ def data_1to1(N, noise_level=1, seed_number=42,
             n = np.random.poisson(lam=5*noise_level, size=N)    
             np.random.shuffle(n)
             n = np.where(X<3, n, 0)
-            y = y_perfect + 0.5*n*np.sin(X)*np.abs(X)*2      
+            y = y_perfect + 0.5*n*np.sin(X)*np.abs(X)*2 
+        elif noise_type == 'exponential':
+            n = np.random.exponential(noise_level, size=N)  
+            np.random.shuffle(n)
+            n = np.where(X<3, n, 0)
+            y = np.clip(y_perfect - 0.5*n*np.abs(X)**2, 0.1, None)
+            
+            
+            
         else:
             print('noise_type not considered')
             exit()    
@@ -292,6 +300,6 @@ def gen_processed_stocks():
     
     X = X[:, Xcols]
     
-    Y = 1000*Y #to avoid problems in the approx solver
+    #Y = 1000*Y #to avoid problems in the approx solver
     
     return X, Y, None
